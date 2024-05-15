@@ -1,0 +1,10 @@
+build
+.codespellignore
+dist
+.dockerignore
+Dockerfile
+.git
+.gitignore
+.pre-commit-config.yaml
+UNKNOWN.egg-info
+.vscode

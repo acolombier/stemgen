@@ -1,0 +1,39 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+    -     id: check-yaml
+    -     id: end-of-file-fixer
+    -     id: trailing-whitespace
+    -   id: check-merge-conflict
+-   repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v18.1.3
+    hooks:
+    -   id: clang-format
+-   repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+    -     id: black
+-   repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.28.3
+    hooks:
+      -   id: check-github-workflows
+-   repo: https://github.com/pycqa/flake8
+    rev: "7.0.0"
+    hooks:
+    -   id: flake8
+        files: ^tools/.*$
+        types: [text, python]
+-   repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.13.0
+    hooks:
+      -   id: markdownlint-cli2
+-   repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+    -   id: codespell
+        args: [
+            --ignore-words,
+            .codespellignore,
+            --write-changes
+        ]
