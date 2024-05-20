@@ -1,0 +1,5 @@
+SAMPLE_RATE = 44100
+MAX_STEM_LABEL_LENGTH = 32
+
+# Used for file saving
+CHUNK_SIZE = 1_024_000  # 1Mb

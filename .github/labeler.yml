@@ -1,0 +1,24 @@
+build:
+  - changed-files:
+      - any-glob-to-any-file:
+          - Dockerfile
+          - setup.py
+          - pyproject.toml
+          - requirements.txt
+          - .github/workflows/**
+
+stembox:
+  - changed-files:
+      - any-glob-to-any-file:
+          - stembox/**
+
+stemgen:
+  - changed-files:
+      - any-glob-to-any-file:
+          - stemgen/**
+
+code quality:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .pre-commit-config.yaml
+          - .codespellignore
