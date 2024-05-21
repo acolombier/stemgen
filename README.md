@@ -36,7 +36,7 @@ Under the hood, it uses:
 > isn't supported
 
 ```sh
-pip install -e "git+https://github.com/acolombier/stemgen.git@0.1.0#egg=stemgen"
+pip install -e "git+https://github.com/acolombier/stemgen.git@0.2.0#egg=stemgen"
 ```
 
 ### Ubuntu 22.04 / Debian Bookworm / PopOS 22.04
@@ -191,7 +191,7 @@ container. Here the simple way to use it:
 docker run \
     -v /path/to/folder:/path/to/folder \
     -it --rm \
-    aclmb/stemgen:0.1.0 \
+    aclmb/stemgen:0.2.0 \
         /path/to/folder/Artist\ -\ Title.mp3 \
         /path/to/folder
 ```
@@ -204,7 +204,7 @@ docker run \
     -v /path/to/folder:/path/to/folder \
     -v stemgen_torch_cache:/root/.cache/torch/hub/ \
     -it --gpus --rm \
-    aclmb/stemgen:0.1.0 \
+    aclmb/stemgen:0.2.0 \
         /path/to/folder/Artist\ -\ Title.mp3 \
         /path/to/folder
 ```

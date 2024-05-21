@@ -1,11 +1,55 @@
 import click
 
-import taglib
+import tagpy
+import tagpy.id3v2
 from torchaudio.io import StreamWriter, CodecConfig
 import stembox
 import torch
 
 from .constant import SAMPLE_RATE, CHUNK_SIZE
+
+SUPPORTED_TAGS = [
+    "title",
+    "artist",
+    "album",
+    "comment",
+    "genre",
+    "year",
+    "track",
+]
+
+
+def _extract_cover(f):
+    tag = None
+    if isinstance(f, tagpy.FileRef):
+        tag = f.tag()
+        f = f.file()
+    covers = []
+    if hasattr(tag, "covers"):
+        covers = tag.covers
+    elif hasattr(f, "ID3v2Tag"):
+        covers = [
+            a
+            for a in f.ID3v2Tag().frameList()
+            if isinstance(a, tagpy.id3v2.AttachedPictureFrame)
+        ]
+
+    if covers:
+        cover = covers[0]
+        fmt = tagpy.mp4.CoverArtFormats.Unknown
+        if isinstance(cover, tagpy.mp4.CoverArt):
+            return cover
+        else:
+            mime = cover.mimeType().lower().strip()
+            if "image/jpeg":
+                fmt = tagpy.mp4.CoverArtFormats.JPEG
+            elif "image/png":
+                fmt = tagpy.mp4.CoverArtFormats.PNG
+            elif "image/bmp":
+                fmt = tagpy.mp4.CoverArtFormats.BMP
+            elif "image/gif":
+                fmt = tagpy.mp4.CoverArtFormats.GIF
+            return tagpy.mp4.CoverArt(fmt, cover.picture())
 
 
 class NIStemFile:
@@ -74,10 +118,20 @@ class NIStemFile:
                 progress.finish()
 
     def update_metadata(self, src, **stem_metadata):
-        with taglib.File(src) as src, taglib.File(
-            self.__path, save_on_exit=True
-        ) as dst:
-            dst.tags = src.tags
+        src = tagpy.FileRef(src)
+        dst = tagpy.FileRef(self.__path)
+
+        src_tag = src.tag()
+        dst_tag = dst.tag()
+        for tag in SUPPORTED_TAGS:
+            setattr(dst_tag, tag, getattr(src_tag, tag))
+
+        cover = _extract_cover(src)
+        if cover:
+            c = tagpy.mp4.CoverArtList()
+            c.append(cover)
+            dst_tag.covers = c
+        dst.save()
 
         with stembox.Stem(self.__path) as f:
             f.stems = [

@@ -19,7 +19,7 @@ body:
     attributes:
       label: Version
       description: What version of stemgen are you running?
-      placeholder: 0.1.0, main, ...
+      placeholder: 0.2.0, main, ...
   - type: input
     id: os
     attributes:
