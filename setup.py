@@ -13,7 +13,7 @@ DESCRIPTION = "STEM file generator library and utility."
 URL = "https://github.com/acolombier/stemgen"
 EMAIL = "stemgen@acolombier.dev"
 AUTHOR = "Antoine Colombier"
-REQUIRES_PYTHON = ">=3.11.0"
+REQUIRES_PYTHON = ">=3.10.0"
 
 # Get version without explicitly loading the module.
 for line in open("stemgen/__init__.py"):

@@ -2,6 +2,7 @@ import click
 
 import tagpy
 import tagpy.id3v2
+import tagpy.ogg.flac
 from torchaudio.io import StreamWriter, CodecConfig
 import stembox
 import torch
@@ -27,29 +28,34 @@ def _extract_cover(f):
     covers = []
     if hasattr(tag, "covers"):
         covers = tag.covers
+    elif hasattr(tag, "pictureList"):
+        covers = tag.pictureList()
     elif hasattr(f, "ID3v2Tag"):
         covers = [
             a
             for a in f.ID3v2Tag().frameList()
             if isinstance(a, tagpy.id3v2.AttachedPictureFrame)
         ]
-
     if covers:
         cover = covers[0]
         fmt = tagpy.mp4.CoverArtFormats.Unknown
         if isinstance(cover, tagpy.mp4.CoverArt):
             return cover
+        data = None
+        if isinstance(cover, tagpy.ogg.flac.Picture):
+            data = cover.data()
         else:
-            mime = cover.mimeType().lower().strip()
-            if "image/jpeg":
-                fmt = tagpy.mp4.CoverArtFormats.JPEG
-            elif "image/png":
-                fmt = tagpy.mp4.CoverArtFormats.PNG
-            elif "image/bmp":
-                fmt = tagpy.mp4.CoverArtFormats.BMP
-            elif "image/gif":
-                fmt = tagpy.mp4.CoverArtFormats.GIF
-            return tagpy.mp4.CoverArt(fmt, cover.picture())
+            data = cover.picture()
+        mime = cover.mimeType().lower().strip()
+        if "image/jpeg":
+            fmt = tagpy.mp4.CoverArtFormats.JPEG
+        elif "image/png":
+            fmt = tagpy.mp4.CoverArtFormats.PNG
+        elif "image/bmp":
+            fmt = tagpy.mp4.CoverArtFormats.BMP
+        elif "image/gif":
+            fmt = tagpy.mp4.CoverArtFormats.GIF
+        return tagpy.mp4.CoverArt(fmt, data)
 
 
 class NIStemFile:
@@ -118,6 +124,20 @@ class NIStemFile:
                 progress.finish()
 
     def update_metadata(self, src, **stem_metadata):
+        # FIXME generating metadata atom after the file tags
+        with stembox.Stem(self.__path) as f:
+            f.stems = [
+                dict(
+                    color=stem_metadata.get(
+                        f"stem_{i+1}_color",
+                    )
+                    or self.STEM_DEFAULT_COLOR[i],
+                    name=stem_metadata.get(f"stem_{i+1}_label")
+                    or self.STEM_DEFAULT_LABEL[i].title(),
+                )
+                for i in range(4)
+            ]
+
         src = tagpy.FileRef(src)
         dst = tagpy.FileRef(self.__path)
 
@@ -132,16 +152,3 @@ class NIStemFile:
             c.append(cover)
             dst_tag.covers = c
         dst.save()
-
-        with stembox.Stem(self.__path) as f:
-            f.stems = [
-                dict(
-                    color=stem_metadata.get(
-                        f"stem_{i+1}_color",
-                    )
-                    or self.STEM_DEFAULT_COLOR[i],
-                    name=stem_metadata.get(f"stem_{i+1}_label")
-                    or self.STEM_DEFAULT_LABEL[i].title(),
-                )
-                for i in range(4)
-            ]
