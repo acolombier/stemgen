@@ -197,6 +197,7 @@ def main(
         overlap=overlap,
         jobs=jobs,
     )
+    has_failure = False
     for file in files:
         file = str(Path(file).resolve())
         filename = ".".join(os.path.basename(file).split(".")[:-1])
@@ -209,7 +210,8 @@ def main(
                 fg="red",
                 err=True,
             )
-            exit(1)
+            has_failure |= True
+            continue
         click.echo(f"Processing {filename}...")
 
         src = Track(file)
@@ -230,6 +232,8 @@ def main(
             stem_4_color=vocal_stem_color,
         )
         click.secho(f"Stem generated in {os.path.basename(dst)}", bold=True, fg="green")
+    if has_failure:
+        exit(1)
 
 
 if __name__ == "__main__":

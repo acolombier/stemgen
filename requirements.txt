@@ -1,5 +1,5 @@
 demucs @ git+https://github.com/facebookresearch/demucs.git@583db9df0213ba5f5b3491eca5c993e7629f1949#egg=demucs
-tagpy @ git+https://github.com/acolombier/tagpy.git@c5de51fe9636b312bfe95dee8b051ab640976d43#egg=tagpy
+tagpy @ git+https://github.com/acolombier/tagpy.git@7be8801d1079cfb3c3d84839959e954781722eb0#egg=tagpy
 setuptools>=61.0
 ffmpeg-python==0.2.0
 torch>=2.1.2
