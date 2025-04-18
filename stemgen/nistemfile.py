@@ -30,7 +30,7 @@ def _extract_cover(f):
         covers = tag.covers
     elif hasattr(tag, "pictureList"):
         covers = tag.pictureList()
-    elif hasattr(f, "ID3v2Tag"):
+    elif hasattr(f, "ID3v2Tag") and f.ID3v2Tag():
         covers = [
             a
             for a in f.ID3v2Tag().frameList()
