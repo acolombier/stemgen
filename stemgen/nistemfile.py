@@ -3,11 +3,14 @@ import click
 import tagpy
 import tagpy.id3v2
 import tagpy.ogg.flac
+import logging
 from torchaudio.io import StreamWriter, CodecConfig
 import stembox
 import torch
 
 from .constant import SAMPLE_RATE, CHUNK_SIZE
+
+logger = logging.getLogger(__file__)
 
 SUPPORTED_TAGS = [
     "title",
@@ -138,11 +141,15 @@ class NIStemFile:
                 for i in range(4)
             ]
 
+        if not src:
+            return
+
         try:
             src = tagpy.FileRef(src)
         except ValueError as e:
-            print(f"ERROR: Unable to read source tags: {e}")
+            logger.warn("Unable to read source tags for %s: %s", src, e)
         else:
+            src = tagpy.FileRef(src)
             dst = tagpy.FileRef(self.__path)
 
             src_tag = src.tag()
