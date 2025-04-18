@@ -35,15 +35,16 @@ Under the hood, it uses:
 > [open a issue](https://github.com/acolombier/stemgen/issues) if your platform
 > isn't supported
 
-```sh
-pip install -e "git+https://github.com/acolombier/stemgen.git@0.2.0#egg=stemgen"
-```
+### Python package
 
-### Ubuntu 22.04 / Debian Bookworm / PopOS 22.04
+Before you can install the Python package, you will need to install the some
+dependencies.
+
+#### Ubuntu 22.04 / Debian Bookworm / PopOS 22.04
 
 ```sh
-# Install FFmpeg and TagLib 2.0
-sudo apt install -y ffmpeg cmake libutfcpp-dev
+# Install FFmpeg, Boost and TagLib 2.0
+sudo apt install -y ffmpeg libboost-python1.74-dev libboost-python1.74.0 cmake libutfcpp-dev
 wget -O taglib.tar.gz https://github.com/taglib/taglib/releases/download/v2.0.1/taglib-2.0.1.tar.gz
 tar xf taglib.tar.gz
 cd taglib-2.0.1
@@ -54,6 +55,58 @@ make -j
 sudo make install
 cd ..
 rm -rf taglib-2.0.1 taglib.tar.gz
+```
+
+#### Fedora 41+ and derivative
+
+```sh
+# Install FFmpeg, Boost and TagLib 2.0
+sudo dnf install ffmpeg boost-python3 python3-pip g++ boost-devel \
+  python3-devel cmake utf8cpp-devel
+wget -O taglib.tar.gz https://github.com/taglib/taglib/releases/download/v2.0.1/taglib-2.0.1.tar.gz
+tar xf taglib.tar.gz
+cd taglib-2.0.1
+cmake -DCMAKE_INSTALL_PREFIX=/usr \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=ON .
+make -j
+sudo make install
+cd ..
+rm -rf taglib-2.0.1 taglib.tar.gz
+```
+
+Once all dependencies have been successfully installed, you can install the
+python package with pip.
+
+```sh
+pip install "git+https://github.com/acolombier/stemgen.git@0.2.1#egg=stemgen"
+```
+
+### Docker (recommended)
+
+If you don't want to install `stemgen` on your machine, you can use the Docker
+container. Here the simple way to use it:
+
+```sh
+docker run \
+    -v /path/to/folder:/path/to/folder \
+    -it --rm \
+    aclmb/stemgen:0.2.1 \
+        /path/to/folder/Artist\ -\ Title.mp3 \
+        /path/to/folder
+```
+
+if you want to use CUDA acceleration, and cache the model not to download it
+every time, you can do the following:
+
+```sh
+docker run \
+    -v /path/to/folder:/path/to/folder \
+    -v stemgen_torch_cache:/root/.cache/torch/hub/ \
+    -it --gpus --rm \
+    aclmb/stemgen:0.2.1 \
+        /path/to/folder/Artist\ -\ Title.mp3 \
+        /path/to/folder
 ```
 
 ## Usage
@@ -179,35 +232,8 @@ Samsung 980 PRO SSD
 
 | Model                | Memory usage peak | Real time |
 |----------------------|-------------------|-----------|
-| `htdemucs` (default) |            1.8 GB | 1m6.427s  |
-| `htdemucs_ft`        |            3.3 GB | 32.637s   |
-
-## Docker image
-
-If you don't want to install `stemgen` on your machine, you can use the Docker
-container. Here the simple way to use it:
-
-```sh
-docker run \
-    -v /path/to/folder:/path/to/folder \
-    -it --rm \
-    aclmb/stemgen:0.2.0 \
-        /path/to/folder/Artist\ -\ Title.mp3 \
-        /path/to/folder
-```
-
-if you want to use CUDA acceleration, and cache the model not to download it
-every time, you can do the following:
-
-```sh
-docker run \
-    -v /path/to/folder:/path/to/folder \
-    -v stemgen_torch_cache:/root/.cache/torch/hub/ \
-    -it --gpus --rm \
-    aclmb/stemgen:0.2.0 \
-        /path/to/folder/Artist\ -\ Title.mp3 \
-        /path/to/folder
-```
+| `htdemucs` (default) |            1.8 GB | 32.637s   |
+| `htdemucs_ft`        |            3.3 GB | 1m6.427s  |
 
 ## License
 
