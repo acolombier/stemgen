@@ -232,7 +232,28 @@ def generate(
 
         src = Track(file)
         samples = src.read()
-        original, stems = demucs.run(samples, verbose)
+        original, stems = None, []
+
+        with click.progressbar(
+            length=samples.shape[1] * len(demucs.weights),
+            show_eta=True,
+            show_percent=True,
+            label="Demucsing",
+        ) as progress:
+            original, stems, warn = demucs.run(
+                samples, update_cb=progress.update, finish_cb=progress.finish
+            )
+            if verbose:
+                if len(warn) > 0:
+                    click.secho(
+                        f"\nThe following warnings were captured while demucs was processing:",
+                        fg="yellow",
+                    )
+
+                for message in warn:
+                    click.secho(
+                        f"\t{warnings._formatwarnmsg_impl(message)}", fg="yellow"
+                    )
 
         out = NIStemFile(dst, use_alac=use_alac)
         out.write(original, stems)
