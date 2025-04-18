@@ -1,5 +1,6 @@
 import os
 import sys
+import platform
 from pathlib import Path
 
 from Cython.Build import cythonize
@@ -56,14 +57,15 @@ def extension_kwargs():
             extra_link_args=["-std=c++20"],
             language="c++",
         )
-    if os.getenv("PREFIX"):
-        prefix = os.environ["PREFIX"]
-        kwargs.update(
-            include_dirs=[f"{prefix}/include/"],
-            library_dirs=[
-                f"{prefix}/lib/",
-            ],
-        )
+    prefix = os.getenv("PREFIX", "/usr")
+    arch = platform.machine()
+    kwargs.update(
+        include_dirs=[f"{prefix}/include/", f"{prefix}/include/{arch}-linux-gnu/"],
+        library_dirs=[
+            f"{prefix}/lib/",
+            f"{prefix}/lib/{arch}-linux-gnu/",
+        ],
+    )
 
     return kwargs
 

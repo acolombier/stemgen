@@ -1,5 +1,4 @@
 from demucs.separate import Separator
-import click
 import warnings
 
 
@@ -22,6 +21,10 @@ class Demucs:
         )
         self.__last_offset = 0
 
+    @property
+    def weights(self):
+        return self.__separator.model.weights
+
     def callback(self, data):
         if (
             data.get("state") == "start"
@@ -30,40 +33,29 @@ class Demucs:
         ):
             return
         global_offset = data["segment_offset"]
+        length = data["length"]
         progress = data["progress"]
         if progress:
             if not global_offset and self.__last_offset:
                 offset = (
-                    progress.length / len(self.__separator.model.weights)
-                    - self.__last_offset
+                    length / len(self.__separator.model.weights) - self.__last_offset
                 )
                 self.__last_offset = 0
             else:
                 offset = data["segment_offset"] - self.__last_offset
                 self.__last_offset = data["segment_offset"]
-            progress.update(offset)
+            progress(offset)
 
-    def run(self, samples, verbose=False):
-        with click.progressbar(
-            length=samples.shape[1] * len(self.__separator.model.weights),
-            show_eta=True,
-            show_percent=True,
-            label="Demucsing",
-        ) as progress, warnings.catch_warnings(record=True) as warn:
-            self.__separator.update_parameter(callback_arg=dict(progress=progress))
+    def length(self, samples):
+        return samples.shape[1] * len(self.__separator.model.weights)
+
+    def run(self, samples, update_cb=lambda x: None, finish_cb=lambda: None):
+        self.__separator.update_parameter(
+            callback_arg=dict(length=self.length(samples), progress=update_cb)
+        )
+        with warnings.catch_warnings(record=True) as warn:
             try:
-                return self.__separator.separate_tensor(samples, SAMPLE_RATE)
+                return *self.__separator.separate_tensor(samples, SAMPLE_RATE), warn
             finally:
-                progress.update(progress.length - progress.pos)
-                progress.finish()
-                if verbose:
-                    if len(warn) > 0:
-                        click.secho(
-                            f"\nThe following warnings were captured while demucs was processing:",
-                            fg="yellow",
-                        )
-
-                    for message in warn:
-                        click.secho(
-                            f"\t{warnings._formatwarnmsg_impl(message)}", fg="yellow"
-                        )
+                update_cb(self.length(samples))
+                finish_cb()

@@ -14,10 +14,12 @@ from most audio files. It is inspired from the the tool of the same name
   Everything is available open source, from the
   [demucsing](https://github.com/facebookresearch/demucs), till the STEM
   metadata generation.
-- More flexible: support virtually any input format and codex and allows full
+- More flexible: support virtually any input format and codec and allows full
   customisation of the stem metadata.
 - Dynamic: easy to ship or run on the go with Docker, or to script to
   generate many STEM at once.
+- Producer friendly: offer a multi platform, open source altrernative to the
+  NI's SteamCreator and allow stem creation from STEM tracks.
 
 Under the hood, it uses:
 
@@ -35,15 +37,21 @@ Under the hood, it uses:
 > [open a issue](https://github.com/acolombier/stemgen/issues) if your platform
 > isn't supported
 
-```sh
-pip install -e "git+https://github.com/acolombier/stemgen.git@0.2.0#egg=stemgen"
-```
+### Python package
 
-### Ubuntu 22.04 / Debian Bookworm / PopOS 22.04
+Before you can install the Python package, you will need to install the
+dependencies.
+
+#### Ubuntu / PopOS
+
+> [!WARNING]
+> stemgen depends on pytorch-audio, which depends of FFmpeg 6. The default
+version shipped on Ubuntu 24.10 and Debian Trixie and beyond is FFmpeg 7,
+which is incompatible. Make sure to use a backport.
 
 ```sh
-# Install FFmpeg and TagLib 2.0
-sudo apt install -y ffmpeg cmake libutfcpp-dev
+# Install FFmpeg, Boost and TagLib 2.0
+sudo apt install -y ffmpeg libboost-python1.74-dev libboost-python1.74.0 cmake libutfcpp-dev
 wget -O taglib.tar.gz https://github.com/taglib/taglib/releases/download/v2.0.1/taglib-2.0.1.tar.gz
 tar xf taglib.tar.gz
 cd taglib-2.0.1
@@ -56,10 +64,68 @@ cd ..
 rm -rf taglib-2.0.1 taglib.tar.gz
 ```
 
+#### Fedora 40 and derivative
+
+> [!WARNING]
+> stemgen depends on pytorch-audio, which depends of FFmpeg 6. The default
+version shipped on Fedora 41 and beyond is FFmpeg 7,
+which is incompatible. Make sure to use a backport.
+
+```sh
+# Install FFmpeg, Boost and TagLib 2.0
+sudo dnf install ffmpeg boost-python3 python3-pip g++ boost-devel \
+  python3-devel cmake utf8cpp-devel
+wget -O taglib.tar.gz https://github.com/taglib/taglib/releases/download/v2.0.1/taglib-2.0.1.tar.gz
+tar xf taglib.tar.gz
+cd taglib-2.0.1
+cmake -DCMAKE_INSTALL_PREFIX=/usr \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=ON .
+make -j
+sudo make install
+cd ..
+rm -rf taglib-2.0.1 taglib.tar.gz
+```
+
+Once all dependencies have been successfully installed, you can install the
+python package with pip.
+
+```sh
+pip install "git+https://github.com/acolombier/stemgen.git@0.3.0#egg=stemgen"
+```
+
+### Docker (recommended)
+
+If you don't want to install `stemgen` on your machine, you can use the Docker
+container. Here the simple way to use it:
+
+```sh
+docker run \
+    -v /path/to/folder:/path/to/folder \
+    -it --rm \
+    aclmb/stemgen:0.3.0 generate \
+        /path/to/folder/Artist\ -\ Title.mp3 \
+        /path/to/folder
+```
+
+if you want to use CUDA acceleration (only relevant for the `generate`
+command), and cache the model not to download it every time, you can do the
+following:
+
+```sh
+docker run \
+    -v /path/to/folder:/path/to/folder \
+    -v stemgen_torch_cache:/root/.cache/torch/hub/ \
+    -it --gpus --rm \
+    aclmb/stemgen:0.3.0 generate \
+        /path/to/folder/Artist\ -\ Title.mp3 \
+        /path/to/folder
+```
+
 ## Usage
 
 ```text
-Usage: stemgen [OPTIONS] FILES... OUTPUT
+stemgen generate [GENERATE OPTIONS, COMMON OPTIONS] FILES... OUTPUT
 
   Generate a NI STEM file out of an audio stereo file.
 
@@ -69,14 +135,16 @@ Usage: stemgen [OPTIONS] FILES... OUTPUT
   OUTPUT  path to an existing directory where to store the generated STEM
   file(s)
 
-Options:
+stemgen create [GENERATE OPTIONS, COMMON OPTIONS] OUTPUT
+
+  Create a NI STEM file out of existing stem tracks.
+
+  OUTPUT  path to the generated STEM file
+
+Options for "genetate":
   --model <model_name>            Demucs model.
   --device <cpu or cuda>          Device for the demucs model inference
   --ext TEXT                      Extension for the STEM file
-  --force                         Proceed even if the output file already
-                                  exists
-  --verbose                       Display verbose information which may be
-                                  useful for debugging
   --repo DIRECTORY                The local directory to use to fetch models
                                   for demucs.
   --model TEXT                    The model to use with demucs. Use --list-
@@ -89,23 +157,42 @@ Options:
   --overlap FLOAT                 Overlap between the splits to use for
                                   demucs.
   --jobs INTEGER                  The number of jobs to use for demucs.
+
+Options for "create":
+  --mastered FILE                 Source file for the pre-mastered track
+                                  [required]
+  --drum FILE                     Source file for the drum stem (the first
+                                  one)  [required]
+  --bass FILE                     Source file for the bass stem (the second
+                                  one)  [required]
+  --other FILE                    Source file for the other stem (the third
+                                  one)  [required]
+  --vocal FILE                    Source file for the vocal stem (the fourth
+                                  and last one)  [required]
+  --copy-id3tags-from-mastered    Copy all ID3 tags from the mastered track
+
+Common options:
+  --force                         Proceed even if the output file already
+                                  exists
+  --verbose                       Display verbose information which may be
+                                  useful for debugging
   --use-alac / --use-aac          The codec to use for the stem stream stored
                                   in the output MP4.
-  --drum-stem-label <label>       Custom label for the drum STEM (the first
+  --drum-stem-label <label>       Custom label for the drum stem (the first
                                   one)
-  --drum-stem-color <hex-color>   Custom color for the drum STEM (the first
+  --drum-stem-color <hex-color>   Custom color for the drum stem (the first
                                   one)
-  --bass-stem-label <label>       Custom label for the drum STEM (the second
+  --bass-stem-label <label>       Custom label for the bass stem (the second
                                   one)
-  --bass-stem-color <hex-color>   Custom color for the drum STEM (the second
+  --bass-stem-color <hex-color>   Custom color for the bass stem (the second
                                   one)
-  --other-stem-label <label>      Custom label for the drum STEM (the third
+  --other-stem-label <label>      Custom label for the other stem (the third
                                   one)
-  --other-stem-color <hex-color>  Custom color for the drum STEM (the third
+  --other-stem-color <hex-color>  Custom color for the other stem (the third
                                   one)
-  --vocal-stem-label <label>      Custom label for the drum STEM (the fourth
+  --vocal-stem-label <label>      Custom label for the vocal stem (the fourth
                                   and last one)
-  --vocal-stem-color <hex-color>  Custom color for the drum STEM (the fourth
+  --vocal-stem-color <hex-color>  Custom color for the vocal stem (the fourth
                                   and last one)
   --list-models                   List detected and supported models usable by
                                   demucs and exit
@@ -116,17 +203,53 @@ Options:
 
 ### Example
 
+#### Generating a STEM track from a Stereo MP3
+
 - Simple usage
 
   ```sh
-  stemgen "Artist - Title.mp3" .
+  stemgen generate "Artist - Title.mp3" .
   ```
 
 - Using `htdemucs_ft` for better result, but more memory usage (see
   [the benchmark section](#memory-benchmark))
 
   ```sh
-  stemgen "Artist - Title.mp3" . --model htdemucs_ft
+  stemgen generate "Artist - Title.mp3" . --model htdemucs_ft
+  ```
+
+#### Create a STEM track from pre-splitted STEM tracks
+
+- Simple usage
+
+  ```sh
+  stemgen create
+    --mastered "Pre-mastered mix.mp3" \
+    --drum "drum part.mp3" \
+    --bass "bass part.mp3" \
+    --other "other part.mp3" \
+    --vocal "vocal part.mp3" \
+    "Artist - Title.stem.mp4"
+  ```
+
+- Customize the STEM metadata
+
+  ```sh
+  stemgen create \
+    --mastered "Pre-mastered mix.mp3" \
+    --drum "Kick part.mp3" \
+    --bass "SubBass part.mp3" \
+    --other "synth part.mp3" \
+    --vocal "Voices part.mp3" \
+    --drum-stem-label "Kick" \
+    --drum-stem-color "#37e4d0" \
+    --bass-stem-label "SubBass" \
+    --bass-stem-color "#656bba" \
+    --other-stem-label "Synths" \
+    --other-stem-color "#52d034" \
+    --vocal-stem-label "Voices" \
+    --vocal-stem-color "#daae2a" \
+    "Artist - Title.stem.mp4"
   ```
 
 ### Note on STEM customisation
@@ -179,35 +302,8 @@ Samsung 980 PRO SSD
 
 | Model                | Memory usage peak | Real time |
 |----------------------|-------------------|-----------|
-| `htdemucs` (default) |            1.8 GB | 1m6.427s  |
-| `htdemucs_ft`        |            3.3 GB | 32.637s   |
-
-## Docker image
-
-If you don't want to install `stemgen` on your machine, you can use the Docker
-container. Here the simple way to use it:
-
-```sh
-docker run \
-    -v /path/to/folder:/path/to/folder \
-    -it --rm \
-    aclmb/stemgen:0.2.0 \
-        /path/to/folder/Artist\ -\ Title.mp3 \
-        /path/to/folder
-```
-
-if you want to use CUDA acceleration, and cache the model not to download it
-every time, you can do the following:
-
-```sh
-docker run \
-    -v /path/to/folder:/path/to/folder \
-    -v stemgen_torch_cache:/root/.cache/torch/hub/ \
-    -it --gpus --rm \
-    aclmb/stemgen:0.2.0 \
-        /path/to/folder/Artist\ -\ Title.mp3 \
-        /path/to/folder
-```
+| `htdemucs` (default) |            1.8 GB | 32.637s   |
+| `htdemucs_ft`        |            3.3 GB | 1m6.427s  |
 
 ## License
 
