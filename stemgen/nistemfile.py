@@ -138,17 +138,21 @@ class NIStemFile:
                 for i in range(4)
             ]
 
-        src = tagpy.FileRef(src)
-        dst = tagpy.FileRef(self.__path)
+        try:
+            src = tagpy.FileRef(src)
+        except ValueError as e:
+            print(f"ERROR: Unable to read source tags: {e}")
+        else:
+            dst = tagpy.FileRef(self.__path)
 
-        src_tag = src.tag()
-        dst_tag = dst.tag()
-        for tag in SUPPORTED_TAGS:
-            setattr(dst_tag, tag, getattr(src_tag, tag))
+            src_tag = src.tag()
+            dst_tag = dst.tag()
+            for tag in SUPPORTED_TAGS:
+                setattr(dst_tag, tag, getattr(src_tag, tag))
 
-        cover = _extract_cover(src)
-        if cover:
-            c = tagpy.mp4.CoverArtList()
-            c.append(cover)
-            dst_tag.covers = c
-        dst.save()
+            cover = _extract_cover(src)
+            if cover:
+                c = tagpy.mp4.CoverArtList()
+                c.append(cover)
+                dst_tag.covers = c
+            dst.save()
