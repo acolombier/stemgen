@@ -2,6 +2,7 @@ from torch import cuda
 import click
 import os
 from pathlib import Path
+import functools
 
 from .cli import (
     validate_device,
@@ -17,7 +18,102 @@ from .track import Track
 from .nistemfile import NIStemFile
 
 
-@click.command()
+def common_options(func):
+    @click.option(
+        "--force",
+        default=False,
+        is_flag=True,
+        help="Proceed even if the output file already exists",
+    )
+    @click.option(
+        "--verbose",
+        default=False,
+        is_flag=True,
+        help="Display verbose information which may be useful for debugging",
+    )
+    @click.option(
+        "--use-alac/--use-aac",
+        default=False,
+        help="The codec to use for the stem stream stored in the output MP4.",
+    )
+    @click.option(
+        "--drum-stem-label",
+        callback=validate_stem_label,
+        metavar="<label>",
+        help="Custom label for the drum STEM (the first one)",
+    )
+    @click.option(
+        "--drum-stem-color",
+        callback=validate_stem_color,
+        metavar="<hex-color>",
+        help="Custom color for the drum STEM (the first one)",
+    )
+    @click.option(
+        "--bass-stem-label",
+        callback=validate_stem_label,
+        metavar="<label>",
+        help="Custom label for the drum STEM (the second one)",
+    )
+    @click.option(
+        "--bass-stem-color",
+        callback=validate_stem_color,
+        metavar="<hex-color>",
+        help="Custom color for the drum STEM (the second one)",
+    )
+    @click.option(
+        "--other-stem-label",
+        callback=validate_stem_label,
+        metavar="<label>",
+        help="Custom label for the drum STEM (the third one)",
+    )
+    @click.option(
+        "--other-stem-color",
+        callback=validate_stem_color,
+        metavar="<hex-color>",
+        help="Custom color for the drum STEM (the third one)",
+    )
+    @click.option(
+        "--vocal-stem-label",
+        callback=validate_stem_label,
+        metavar="<label>",
+        help="Custom label for the drum STEM (the fourth and last one)",
+    )
+    @click.option(
+        "--vocal-stem-color",
+        callback=validate_stem_color,
+        metavar="<hex-color>",
+        help="Custom color for the drum STEM (the fourth and last one)",
+    )
+    @click.option(
+        "--list-models",
+        is_flag=True,
+        callback=print_supported_models,
+        help="List detected and supported models usable by demucs and exit",
+        expose_value=False,
+        is_eager=True,
+    )
+    @click.option(
+        "--version",
+        is_flag=True,
+        callback=print_version,
+        expose_value=False,
+        is_eager=True,
+        help="Display the stemgen version and exit",
+    )
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@click.group()
+@click.pass_context
+def main(ctx, **kwargs):
+    pass
+
+
+@main.command()
 @click.argument(
     "files",
     nargs=-1,
@@ -50,18 +146,6 @@ from .nistemfile import NIStemFile
     help="Extension for the STEM file",
 )
 @click.option(
-    "--force",
-    default=False,
-    is_flag=True,
-    help="Proceed even if the output file already exists",
-)
-@click.option(
-    "--verbose",
-    default=False,
-    is_flag=True,
-    help="Display verbose information which may be useful for debugging",
-)
-@click.option(
     "--repo",
     default=None,
     expose_value=True,
@@ -91,76 +175,8 @@ from .nistemfile import NIStemFile
     default=1,
     help="The number of jobs to use for demucs.",
 )
-@click.option(
-    "--use-alac/--use-aac",
-    default=False,
-    help="The codec to use for the stem stream stored in the output MP4.",
-)
-@click.option(
-    "--drum-stem-label",
-    callback=validate_stem_label,
-    metavar="<label>",
-    help="Custom label for the drum STEM (the first one)",
-)
-@click.option(
-    "--drum-stem-color",
-    callback=validate_stem_color,
-    metavar="<hex-color>",
-    help="Custom color for the drum STEM (the first one)",
-)
-@click.option(
-    "--bass-stem-label",
-    callback=validate_stem_label,
-    metavar="<label>",
-    help="Custom label for the drum STEM (the second one)",
-)
-@click.option(
-    "--bass-stem-color",
-    callback=validate_stem_color,
-    metavar="<hex-color>",
-    help="Custom color for the drum STEM (the second one)",
-)
-@click.option(
-    "--other-stem-label",
-    callback=validate_stem_label,
-    metavar="<label>",
-    help="Custom label for the drum STEM (the third one)",
-)
-@click.option(
-    "--other-stem-color",
-    callback=validate_stem_color,
-    metavar="<hex-color>",
-    help="Custom color for the drum STEM (the third one)",
-)
-@click.option(
-    "--vocal-stem-label",
-    callback=validate_stem_label,
-    metavar="<label>",
-    help="Custom label for the drum STEM (the fourth and last one)",
-)
-@click.option(
-    "--vocal-stem-color",
-    callback=validate_stem_color,
-    metavar="<hex-color>",
-    help="Custom color for the drum STEM (the fourth and last one)",
-)
-@click.option(
-    "--list-models",
-    is_flag=True,
-    callback=print_supported_models,
-    help="List detected and supported models usable by demucs and exit",
-    expose_value=False,
-    is_eager=True,
-)
-@click.option(
-    "--version",
-    is_flag=True,
-    callback=print_version,
-    expose_value=False,
-    is_eager=True,
-    help="Display the stemgen version and exit",
-)
-def main(
+@common_options
+def generate(
     files,
     output,
     device,

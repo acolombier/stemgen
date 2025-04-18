@@ -89,7 +89,7 @@ Once all dependencies have been successfully installed, you can install the
 python package with pip.
 
 ```sh
-pip install "git+https://github.com/acolombier/stemgen.git@0.2.1#egg=stemgen"
+pip install "git+https://github.com/acolombier/stemgen.git@0.3.0#egg=stemgen"
 ```
 
 ### Docker (recommended)
@@ -101,7 +101,7 @@ container. Here the simple way to use it:
 docker run \
     -v /path/to/folder:/path/to/folder \
     -it --rm \
-    aclmb/stemgen:0.2.1 \
+    aclmb/stemgen:0.3.0 generate \
         /path/to/folder/Artist\ -\ Title.mp3 \
         /path/to/folder
 ```
@@ -114,7 +114,7 @@ docker run \
     -v /path/to/folder:/path/to/folder \
     -v stemgen_torch_cache:/root/.cache/torch/hub/ \
     -it --gpus --rm \
-    aclmb/stemgen:0.2.1 \
+    aclmb/stemgen:0.3.0 generate \
         /path/to/folder/Artist\ -\ Title.mp3 \
         /path/to/folder
 ```
@@ -122,7 +122,7 @@ docker run \
 ## Usage
 
 ```text
-Usage: stemgen [OPTIONS] FILES... OUTPUT
+Usage: stemgen generate [OPTIONS] FILES... OUTPUT
 
   Generate a NI STEM file out of an audio stereo file.
 
@@ -136,10 +136,6 @@ Options:
   --model <model_name>            Demucs model.
   --device <cpu or cuda>          Device for the demucs model inference
   --ext TEXT                      Extension for the STEM file
-  --force                         Proceed even if the output file already
-                                  exists
-  --verbose                       Display verbose information which may be
-                                  useful for debugging
   --repo DIRECTORY                The local directory to use to fetch models
                                   for demucs.
   --model TEXT                    The model to use with demucs. Use --list-
@@ -152,6 +148,10 @@ Options:
   --overlap FLOAT                 Overlap between the splits to use for
                                   demucs.
   --jobs INTEGER                  The number of jobs to use for demucs.
+  --force                         Proceed even if the output file already
+                                  exists
+  --verbose                       Display verbose information which may be
+                                  useful for debugging
   --use-alac / --use-aac          The codec to use for the stem stream stored
                                   in the output MP4.
   --drum-stem-label <label>       Custom label for the drum STEM (the first
@@ -182,14 +182,14 @@ Options:
 - Simple usage
 
   ```sh
-  stemgen "Artist - Title.mp3" .
+  stemgen generate "Artist - Title.mp3" .
   ```
 
 - Using `htdemucs_ft` for better result, but more memory usage (see
   [the benchmark section](#memory-benchmark))
 
   ```sh
-  stemgen "Artist - Title.mp3" . --model htdemucs_ft
+  stemgen generate "Artist - Title.mp3" . --model htdemucs_ft
   ```
 
 ### Note on STEM customisation
