@@ -49,7 +49,7 @@ def validate_stem_label(ctx, param, value):
 def validate_stem_color(ctx, param, value):
     if value and not re.match("^#[0-9a-f]{6}$", value, flags=re.IGNORECASE):
         raise click.BadParameter(
-            f"the stem color must be in hex-rgb format (e.g ##AABBCC)"
+            f"the stem color must be in hex-rgb format (e.g #AABBCC)"
         )
     return value
 
