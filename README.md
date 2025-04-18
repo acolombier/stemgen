@@ -14,10 +14,12 @@ from most audio files. It is inspired from the the tool of the same name
   Everything is available open source, from the
   [demucsing](https://github.com/facebookresearch/demucs), till the STEM
   metadata generation.
-- More flexible: support virtually any input format and codex and allows full
+- More flexible: support virtually any input format and codec and allows full
   customisation of the stem metadata.
 - Dynamic: easy to ship or run on the go with Docker, or to script to
   generate many STEM at once.
+- Producer friendly: offer a multi platform, open source altrernative to the
+  NI's SteamCreator and allow stem creation from STEM tracks.
 
 Under the hood, it uses:
 
@@ -106,8 +108,9 @@ docker run \
         /path/to/folder
 ```
 
-if you want to use CUDA acceleration, and cache the model not to download it
-every time, you can do the following:
+if you want to use CUDA acceleration (only relevant for the `generate`
+command), and cache the model not to download it every time, you can do the
+following:
 
 ```sh
 docker run \
@@ -122,7 +125,7 @@ docker run \
 ## Usage
 
 ```text
-Usage: stemgen generate [OPTIONS] FILES... OUTPUT
+stemgen generate [GENERATE OPTIONS, COMMON OPTIONS] FILES... OUTPUT
 
   Generate a NI STEM file out of an audio stereo file.
 
@@ -132,7 +135,13 @@ Usage: stemgen generate [OPTIONS] FILES... OUTPUT
   OUTPUT  path to an existing directory where to store the generated STEM
   file(s)
 
-Options:
+stemgen create [GENERATE OPTIONS, COMMON OPTIONS] OUTPUT
+
+  Create a NI STEM file out of existing stem tracks.
+
+  OUTPUT  path to the generated STEM file
+
+Options for "genetate":
   --model <model_name>            Demucs model.
   --device <cpu or cuda>          Device for the demucs model inference
   --ext TEXT                      Extension for the STEM file
@@ -148,27 +157,42 @@ Options:
   --overlap FLOAT                 Overlap between the splits to use for
                                   demucs.
   --jobs INTEGER                  The number of jobs to use for demucs.
+
+Options for "create":
+  --mastered FILE                 Source file for the pre-mastered track
+                                  [required]
+  --drum FILE                     Source file for the drum stem (the first
+                                  one)  [required]
+  --bass FILE                     Source file for the bass stem (the second
+                                  one)  [required]
+  --other FILE                    Source file for the other stem (the third
+                                  one)  [required]
+  --vocal FILE                    Source file for the vocal stem (the fourth
+                                  and last one)  [required]
+  --copy-id3tags-from-mastered    Copy all ID3 tags from the mastered track
+
+Common options:
   --force                         Proceed even if the output file already
                                   exists
   --verbose                       Display verbose information which may be
                                   useful for debugging
   --use-alac / --use-aac          The codec to use for the stem stream stored
                                   in the output MP4.
-  --drum-stem-label <label>       Custom label for the drum STEM (the first
+  --drum-stem-label <label>       Custom label for the drum stem (the first
                                   one)
-  --drum-stem-color <hex-color>   Custom color for the drum STEM (the first
+  --drum-stem-color <hex-color>   Custom color for the drum stem (the first
                                   one)
-  --bass-stem-label <label>       Custom label for the drum STEM (the second
+  --bass-stem-label <label>       Custom label for the bass stem (the second
                                   one)
-  --bass-stem-color <hex-color>   Custom color for the drum STEM (the second
+  --bass-stem-color <hex-color>   Custom color for the bass stem (the second
                                   one)
-  --other-stem-label <label>      Custom label for the drum STEM (the third
+  --other-stem-label <label>      Custom label for the other stem (the third
                                   one)
-  --other-stem-color <hex-color>  Custom color for the drum STEM (the third
+  --other-stem-color <hex-color>  Custom color for the other stem (the third
                                   one)
-  --vocal-stem-label <label>      Custom label for the drum STEM (the fourth
+  --vocal-stem-label <label>      Custom label for the vocal stem (the fourth
                                   and last one)
-  --vocal-stem-color <hex-color>  Custom color for the drum STEM (the fourth
+  --vocal-stem-color <hex-color>  Custom color for the vocal stem (the fourth
                                   and last one)
   --list-models                   List detected and supported models usable by
                                   demucs and exit
@@ -178,6 +202,8 @@ Options:
 ```
 
 ### Example
+
+#### Generating a STEM track from a Stereo MP3
 
 - Simple usage
 
@@ -190,6 +216,40 @@ Options:
 
   ```sh
   stemgen generate "Artist - Title.mp3" . --model htdemucs_ft
+  ```
+
+#### Create a STEM track from pre-splitted STEM tracks
+
+- Simple usage
+
+  ```sh
+  stemgen create
+    --mastered "Pre-mastered mix.mp3" \
+    --drum "drum part.mp3" \
+    --bass "bass part.mp3" \
+    --other "other part.mp3" \
+    --vocal "vocal part.mp3" \
+    "Artist - Title.stem.mp4"
+  ```
+
+- Customize the STEM metadata
+
+  ```sh
+  stemgen create \
+    --mastered "Pre-mastered mix.mp3" \
+    --drum "Kick part.mp3" \
+    --bass "SubBass part.mp3" \
+    --other "synth part.mp3" \
+    --vocal "Voices part.mp3" \
+    --drum-stem-label "Kick" \
+    --drum-stem-color "#37e4d0" \
+    --bass-stem-label "SubBass" \
+    --bass-stem-color "#656bba" \
+    --other-stem-label "Synths" \
+    --other-stem-color "#52d034" \
+    --vocal-stem-label "Voices" \
+    --vocal-stem-color "#daae2a" \
+    "Artist - Title.stem.mp4"
   ```
 
 ### Note on STEM customisation
