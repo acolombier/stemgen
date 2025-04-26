@@ -8,7 +8,7 @@ from torchaudio.io import StreamWriter, CodecConfig
 import stembox
 import torch
 
-from .constant import SAMPLE_RATE, CHUNK_SIZE
+from .constant import SAMPLE_RATE, CHUNK_SIZE, Codec
 
 logger = logging.getLogger(__file__)
 
@@ -75,14 +75,16 @@ class NIStemFile:
         "#56B4E9",
     ]
 
-    def __init__(self, path, use_alac=False):
+    def __init__(self, path, codec: Codec):
+
         self.__path = path
+        self.__codec = codec
         self.__stream = StreamWriter(dst=path, format="mp4")
 
         self.__stream.add_audio_stream(
             sample_rate=SAMPLE_RATE,
             num_channels=2,
-            encoder="alac" if use_alac else "aac",
+            encoder=codec.value,
             encoder_sample_rate=SAMPLE_RATE,
             encoder_num_channels=2,
             codec_config=CodecConfig(bit_rate=256000),
@@ -91,7 +93,7 @@ class NIStemFile:
             self.__stream.add_audio_stream(
                 sample_rate=SAMPLE_RATE,
                 num_channels=2,
-                encoder="alac" if use_alac else "aac",
+                encoder=codec.value,
                 encoder_sample_rate=SAMPLE_RATE,
                 encoder_num_channels=2,
                 codec_config=CodecConfig(bit_rate=256000),

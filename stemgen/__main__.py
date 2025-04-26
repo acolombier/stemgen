@@ -17,6 +17,7 @@ from .cli import (
 from .demucs import Demucs
 from .track import Track
 from .nistemfile import NIStemFile
+from .constant import Codec
 
 
 def common_options(func):
@@ -34,9 +35,10 @@ def common_options(func):
         help="Display verbose information which may be useful for debugging",
     )
     @click.option(
-        "--use-alac/--use-aac",
-        default=False,
+        "--codec",
+        default=Codec.AAC,
         help="The codec to use for the stem stream stored in the output MP4.",
+        type=click.Choice(Codec, case_sensitive=False),
     )
     @click.option(
         "--drum-stem-label",
@@ -190,7 +192,7 @@ def generate(
     shifts,
     overlap,
     jobs,
-    use_alac,
+    codec,
     drum_stem_label,
     drum_stem_color,
     bass_stem_label,
@@ -257,7 +259,7 @@ def generate(
                         f"\t{warnings._formatwarnmsg_impl(message)}", fg="yellow"
                     )
 
-        out = NIStemFile(dst, use_alac=use_alac)
+        out = NIStemFile(dst, codec)
         out.write(original, stems)
         out.update_metadata(
             file,
@@ -327,7 +329,7 @@ def create(
     vocal,
     force,
     verbose,
-    use_alac,
+    codec,
     drum_stem_label,
     drum_stem_color,
     bass_stem_label,
@@ -350,7 +352,7 @@ def create(
         "vocals": Track(vocal),
     }
 
-    out = NIStemFile(output, use_alac=use_alac)
+    out = NIStemFile(output, codec)
     out.write(original.read(), {k: v.read() for k, v in stems.items()})
     out.update_metadata(
         mastered if copy_id3tags_from_mastered else None,

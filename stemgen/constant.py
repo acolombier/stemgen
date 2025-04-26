@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 
 SAMPLE_RATE = 44100
 MAX_STEM_LABEL_LENGTH = 32
@@ -20,3 +20,8 @@ class AvLog(IntEnum):
     VERBOSE = 40
     DEBUG = 48
     TRACE = 56
+
+
+class Codec(StrEnum):
+    AAC = "aac"
+    ALAC = "alac"
