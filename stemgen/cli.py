@@ -2,8 +2,9 @@ import click
 import re
 from demucs.api import list_models
 from pathlib import Path
+from torchaudio.utils import ffmpeg_utils
 
-from .constant import MAX_STEM_LABEL_LENGTH
+from .constant import MAX_STEM_LABEL_LENGTH, AvLog
 from . import __version__
 
 
@@ -70,3 +71,8 @@ def print_supported_models(ctx, param, value):
     click.echo("Single models:")
     click.echo("\n    ".join(models["single"]))
     ctx.exit()
+
+
+def enable_verbose_ffmpeg_log_level(ctx, param, value):
+    if value:
+        ffmpeg_utils.set_log_level(AvLog.VERBOSE)

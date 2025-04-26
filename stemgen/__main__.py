@@ -12,6 +12,7 @@ from .cli import (
     validate_stem_color,
     print_version,
     print_supported_models,
+    enable_verbose_ffmpeg_log_level,
 )
 from .demucs import Demucs
 from .track import Track
@@ -29,6 +30,7 @@ def common_options(func):
         "--verbose",
         default=False,
         is_flag=True,
+        callback=enable_verbose_ffmpeg_log_level,
         help="Display verbose information which may be useful for debugging",
     )
     @click.option(
