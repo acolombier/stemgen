@@ -237,7 +237,7 @@ def generate(
         original, stems = None, []
 
         with click.progressbar(
-            length=samples.shape[1] * len(demucs.weights),
+            length=demucs.length(samples) * shifts,
             show_eta=True,
             show_percent=True,
             label="Demucsing",
