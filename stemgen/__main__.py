@@ -10,6 +10,7 @@ from .cli import (
     validate_model,
     validate_stem_label,
     validate_stem_color,
+    validate_sample_rate_for_codec,
     print_version,
     print_supported_models,
     enable_verbose_ffmpeg_log_level,
@@ -37,12 +38,14 @@ def common_options(func):
     @click.option(
         "--codec",
         default=Codec.AAC,
+        callback=validate_sample_rate_for_codec,
         help="The codec to use for the stem stream stored in the output MP4.",
         type=click.Choice(Codec, case_sensitive=False),
     )
     @click.option(
         "--sample-rate",
         default=str(SampleRate.Hz44100),
+        callback=validate_sample_rate_for_codec,
         help="The sample rate to use for the output.",
         type=click.Choice([str(s.value) for s in SampleRate]),
     )

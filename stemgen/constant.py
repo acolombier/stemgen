@@ -25,6 +25,16 @@ class Codec(StrEnum):
     AAC = "aac"
     ALAC = "alac"
     FLAC = "flac"
+    OPUS = "opus"
+
+    def encoder_name(self):
+        # In case of opus, the ffmpeg encoder we want is called "libopus"
+        # There is also one called only "opus", but it is experimental.
+        match self:
+            case Codec.OPUS:
+                return "libopus"
+            case _:
+                return self.value
 
 
 class SampleRate(IntEnum):

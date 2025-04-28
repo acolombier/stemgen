@@ -4,7 +4,7 @@ from demucs.api import list_models
 from pathlib import Path
 from torchaudio.utils import ffmpeg_utils
 
-from .constant import MAX_STEM_LABEL_LENGTH, AvLog
+from .constant import MAX_STEM_LABEL_LENGTH, AvLog, Codec, SampleRate
 from . import __version__
 
 
@@ -76,3 +76,23 @@ def print_supported_models(ctx, param, value):
 def enable_verbose_ffmpeg_log_level(ctx, param, value):
     if value:
         ffmpeg_utils.set_log_level(AvLog.VERBOSE)
+
+
+# The opus codec only supports an output sample_rate of 48kHz
+def validate_sample_rate_for_codec(ctx, param, value):
+    if param.name == "sample_rate":
+        value = SampleRate(int(value))
+
+    def _do_validate(codec: Codec, sample_rate: SampleRate):
+        if codec == Codec.OPUS and sample_rate != SampleRate.Hz48000:
+            raise click.BadParameter(
+                "Opus requires a sample rate of 48kHz. Set it using --sample-rate 48000"
+            )
+
+    # Validate after we have both params, independent of given order
+    if param.name == "codec" and "sample_rate" in ctx.params:
+        _do_validate(value, ctx.params["sample_rate"])
+    elif param.name == "sample_rate" and "codec" in ctx.params:
+        _do_validate(ctx.params["codec"], value)
+
+    return value
