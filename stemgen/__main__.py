@@ -17,7 +17,7 @@ from .cli import (
 from .demucs import Demucs
 from .track import Track
 from .nistemfile import NIStemFile
-from .constant import Codec
+from .constant import Codec, SampleRate
 
 
 def common_options(func):
@@ -39,6 +39,12 @@ def common_options(func):
         default=Codec.AAC,
         help="The codec to use for the stem stream stored in the output MP4.",
         type=click.Choice(Codec, case_sensitive=False),
+    )
+    @click.option(
+        "--sample-rate",
+        default=str(SampleRate.Hz44100),
+        help="The sample rate to use for the output.",
+        type=click.Choice([str(s.value) for s in SampleRate]),
     )
     @click.option(
         "--drum-stem-label",
@@ -193,6 +199,7 @@ def generate(
     overlap,
     jobs,
     codec,
+    sample_rate,
     drum_stem_label,
     drum_stem_color,
     bass_stem_label,
@@ -234,7 +241,7 @@ def generate(
             continue
         click.echo(f"Processing {filename}...")
 
-        src = Track(file)
+        src = Track(file, demucs.sample_rate)
         samples = src.read()
         original, stems = None, []
 
@@ -259,7 +266,7 @@ def generate(
                         f"\t{warnings._formatwarnmsg_impl(message)}", fg="yellow"
                     )
 
-        out = NIStemFile(dst, codec)
+        out = NIStemFile(dst, codec, demucs.sample_rate, sample_rate)
         out.write(original, stems)
         out.update_metadata(
             file,
@@ -330,6 +337,7 @@ def create(
     force,
     verbose,
     codec,
+    sample_rate,
     drum_stem_label,
     drum_stem_color,
     bass_stem_label,
@@ -344,15 +352,15 @@ def create(
 
     OUTPUT  path to the generated STEM file
     """
-    original = Track(mastered)
+    original = Track(mastered, sample_rate)
     stems = {
-        "drums": Track(drum),
-        "bass": Track(bass),
-        "other": Track(other),
-        "vocals": Track(vocal),
+        "drums": Track(drum, sample_rate),
+        "bass": Track(bass, sample_rate),
+        "other": Track(other, sample_rate),
+        "vocals": Track(vocal, sample_rate),
     }
 
-    out = NIStemFile(output, codec)
+    out = NIStemFile(output, codec, sample_rate, sample_rate)
     out.write(original.read(), {k: v.read() for k, v in stems.items()})
     out.update_metadata(
         mastered if copy_id3tags_from_mastered else None,

@@ -1,6 +1,5 @@
 from enum import IntEnum, StrEnum
 
-SAMPLE_RATE = 44100
 MAX_STEM_LABEL_LENGTH = 32
 
 # Used for file saving
@@ -26,3 +25,8 @@ class Codec(StrEnum):
     AAC = "aac"
     ALAC = "alac"
     FLAC = "flac"
+
+
+class SampleRate(IntEnum):
+    Hz44100 = 44100
+    Hz48000 = 48000
