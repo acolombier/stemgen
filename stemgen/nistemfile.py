@@ -113,7 +113,15 @@ class NIStemFile:
 
     def write(self, original, stems):
         sample_count = original.shape[1] + sum([t.shape[1] for t in stems.values()])
-        with self.__stream.open():
+
+        match self.__codec:
+            case Codec.FLAC:
+                # Enable flac muxing in mp4
+                muxer_options = {"strict": "-2"}
+            case _:
+                muxer_options = {}
+
+        with self.__stream.open(option=muxer_options):
             with click.progressbar(
                 length=sample_count, show_percent=True, label="Saving stems"
             ) as progress:

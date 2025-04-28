@@ -25,3 +25,4 @@ class AvLog(IntEnum):
 class Codec(StrEnum):
     AAC = "aac"
     ALAC = "alac"
+    FLAC = "flac"
