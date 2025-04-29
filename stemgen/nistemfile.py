@@ -3,6 +3,7 @@ import click
 import tagpy
 import tagpy.id3v2
 import tagpy.ogg.flac
+import tagpy.mp4
 import logging
 from torchaudio.io import StreamWriter, CodecConfig
 import stembox
@@ -23,11 +24,9 @@ SUPPORTED_TAGS = [
 ]
 
 
-def _extract_cover(f):
-    tag = None
-    if isinstance(f, tagpy.FileRef):
-        tag = f.tag()
-        f = f.file()
+def _extract_cover(file_ref: tagpy.FileRef) -> tagpy.mp4.CoverArt:
+    tag = file_ref.tag()
+    f = file_ref.file()
     covers = []
     if hasattr(tag, "covers"):
         covers = tag.covers
