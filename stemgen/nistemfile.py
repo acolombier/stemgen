@@ -50,14 +50,17 @@ def _extract_cover(f):
         else:
             data = cover.picture()
         mime = cover.mimeType().lower().strip()
-        if "image/jpeg":
-            fmt = tagpy.mp4.CoverArtFormats.JPEG
-        elif "image/png":
-            fmt = tagpy.mp4.CoverArtFormats.PNG
-        elif "image/bmp":
-            fmt = tagpy.mp4.CoverArtFormats.BMP
-        elif "image/gif":
-            fmt = tagpy.mp4.CoverArtFormats.GIF
+        match mime:
+            case "image/jpeg":
+                fmt = tagpy.mp4.CoverArtFormats.JPEG
+            case "image/png":
+                fmt = tagpy.mp4.CoverArtFormats.PNG
+            case "image/bmp":
+                fmt = tagpy.mp4.CoverArtFormats.BMP
+            case "image/gif":
+                fmt = tagpy.mp4.CoverArtFormats.GIF
+            case _:
+                fmt = tagpy.mp4.CoverArtFormats.Unknown
         return tagpy.mp4.CoverArt(fmt, data)
 
 
