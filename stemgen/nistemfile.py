@@ -32,6 +32,8 @@ def _extract_cover(file_ref: tagpy.FileRef) -> tagpy.mp4.CoverArt:
         covers = tag.covers
     elif hasattr(tag, "pictureList"):
         covers = tag.pictureList()
+    elif hasattr(f, "pictureList"):
+        covers = f.pictureList()
     elif hasattr(f, "ID3v2Tag") and f.ID3v2Tag():
         covers = [
             a
