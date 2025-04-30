@@ -25,8 +25,8 @@ jobs:
         tag:
           - ""
           - cuda
-          - cuda11
-          - rocm
+          # - cuda11
+          # - rocm
     steps:
       - name: Prepare
         env:
@@ -40,8 +40,8 @@ jobs:
           elif [ "$TAG" = "rocm" ]; then
             echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/rocm" >> $GITHUB_ENV
           else
-            echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/rocm" >> $GITHUB_ENV
-          endif
+            echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/cpu" >> $GITHUB_ENV
+          fi
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
       - name: Checkout
@@ -73,6 +73,8 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            PYTORCH_PIP_SERVER=${{ env.PYTORCH_PIP_SERVER }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' && github.repository == 'acolombier/stemgen' }}
 
       - name: Export digest
@@ -98,8 +100,8 @@ jobs:
         tag:
           - ""
           - cuda
-          - cuda11
-          - rocm
+          # - cuda11
+          # - rocm
     needs:
       - build
     steps:
@@ -119,10 +121,12 @@ jobs:
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           flavor: |
-            latest=${{ matrix.tag == '' && 'auto' || 'false' }}
-            suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }},onlatest=${{ matrix.tag != '' }}
+            latest=auto
+            suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }},onlatest=true
           tags: |
-            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch,suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }}
+            type=ref,event=tag,suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }}
+            type=ref,event=pr,suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
