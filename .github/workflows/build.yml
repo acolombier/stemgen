@@ -110,3 +110,7 @@ jobs:
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+
+      - name: Check entrypoint
+        run: |
+          (jq -r '.tags[]' <<< "$DOCKER_METADATA_OUTPUT_JSON") | xargs -I{} docker run -i --rm ${{ env.REGISTRY_IMAGE }}:{} --version
