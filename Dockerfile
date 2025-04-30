@@ -1,4 +1,5 @@
-FROM python:3.11 as build
+FROM --platform=$BUILDPLATFORM python:3.11 AS build
+ARG TARGETARCH
 WORKDIR /build
 RUN wget -O taglib.tar.gz https://github.com/taglib/taglib/releases/download/v2.0.1/taglib-2.0.1.tar.gz && \
     tar xf taglib.tar.gz  && \
@@ -12,13 +13,17 @@ RUN python3 -m build --wheel && \
     find /usr/lib -name libtag.so.2.0.1 -exec cp '{}' /build/libtag.so.2.0.1 \;
 
 
-FROM python:3.11
+FROM --platform=$BUILDPLATFORM python:3.11
+ARG TARGETARCH
+ARG PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/cpu
 COPY --from=build /build/libtag.so.2.0.1 /usr/local/lib/libtag.so.2.0.1
 COPY --from=build /build/dist/stemgen-*.whl /tmp/
 COPY --from=build /usr/include/taglib/ /usr/include/taglib/
 RUN ln -s /usr/local/lib/libtag.so.2.0.1 /usr/local/lib/libtag.so && \
     apt-get update && apt-get install --no-install-recommends -y ffmpeg libboost-python1.74-dev libboost-python1.74.0 tini && \
-    python -m pip install /tmp/stemgen-*.whl && \
+    python -m pip install /tmp/stemgen-*.whl \
+        --index-url "$PYTORCH_PIP_SERVER" \
+        --extra-index-url https://pypi.org/simple && \
     pip install --upgrade --force torchaudio && \
     apt-get purge -y libboost-python1.74-dev && \
     apt-get clean autoclean && \
