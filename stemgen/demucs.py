@@ -2,9 +2,6 @@ from demucs.separate import Separator
 import warnings
 
 
-from .constant import SAMPLE_RATE
-
-
 class Demucs:
     def __init__(self, repo, model, device, shifts=1, overlap=0.25, jobs=1):
         self.__separator = Separator(
@@ -24,6 +21,10 @@ class Demucs:
     @property
     def weights(self):
         return self.__separator.model.weights
+
+    @property
+    def sample_rate(self):
+        return self.__separator.samplerate
 
     def callback(self, data):
         if (
@@ -55,7 +56,12 @@ class Demucs:
         )
         with warnings.catch_warnings(record=True) as warn:
             try:
-                return *self.__separator.separate_tensor(samples, SAMPLE_RATE), warn
+                return (
+                    *self.__separator.separate_tensor(
+                        samples, self.__separator.samplerate
+                    ),
+                    warn,
+                )
             finally:
                 update_cb(self.length(samples))
                 finish_cb()

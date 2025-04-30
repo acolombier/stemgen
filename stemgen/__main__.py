@@ -10,12 +10,15 @@ from .cli import (
     validate_model,
     validate_stem_label,
     validate_stem_color,
+    validate_sample_rate_for_codec,
     print_version,
     print_supported_models,
+    enable_verbose_ffmpeg_log_level,
 )
 from .demucs import Demucs
 from .track import Track
 from .nistemfile import NIStemFile
+from .constant import Codec, SampleRate
 
 
 def common_options(func):
@@ -29,12 +32,22 @@ def common_options(func):
         "--verbose",
         default=False,
         is_flag=True,
+        callback=enable_verbose_ffmpeg_log_level,
         help="Display verbose information which may be useful for debugging",
     )
     @click.option(
-        "--use-alac/--use-aac",
-        default=False,
+        "--codec",
+        default=Codec.AAC,
+        callback=validate_sample_rate_for_codec,
         help="The codec to use for the stem stream stored in the output MP4.",
+        type=click.Choice(Codec, case_sensitive=False),
+    )
+    @click.option(
+        "--sample-rate",
+        default=str(SampleRate.Hz44100),
+        callback=validate_sample_rate_for_codec,
+        help="The sample rate to use for the output.",
+        type=click.Choice([str(s.value) for s in SampleRate]),
     )
     @click.option(
         "--drum-stem-label",
@@ -188,7 +201,8 @@ def generate(
     shifts,
     overlap,
     jobs,
-    use_alac,
+    codec,
+    sample_rate,
     drum_stem_label,
     drum_stem_color,
     bass_stem_label,
@@ -230,12 +244,12 @@ def generate(
             continue
         click.echo(f"Processing {filename}...")
 
-        src = Track(file)
+        src = Track(file, demucs.sample_rate)
         samples = src.read()
         original, stems = None, []
 
         with click.progressbar(
-            length=samples.shape[1] * len(demucs.weights),
+            length=demucs.length(samples) * shifts,
             show_eta=True,
             show_percent=True,
             label="Demucsing",
@@ -255,7 +269,7 @@ def generate(
                         f"\t{warnings._formatwarnmsg_impl(message)}", fg="yellow"
                     )
 
-        out = NIStemFile(dst, use_alac=use_alac)
+        out = NIStemFile(dst, codec, demucs.sample_rate, sample_rate)
         out.write(original, stems)
         out.update_metadata(
             file,
@@ -325,7 +339,8 @@ def create(
     vocal,
     force,
     verbose,
-    use_alac,
+    codec,
+    sample_rate,
     drum_stem_label,
     drum_stem_color,
     bass_stem_label,
@@ -340,15 +355,15 @@ def create(
 
     OUTPUT  path to the generated STEM file
     """
-    original = Track(mastered)
+    original = Track(mastered, sample_rate)
     stems = {
-        "drums": Track(drum),
-        "bass": Track(bass),
-        "other": Track(other),
-        "vocals": Track(vocal),
+        "drums": Track(drum, sample_rate),
+        "bass": Track(bass, sample_rate),
+        "other": Track(other, sample_rate),
+        "vocals": Track(vocal, sample_rate),
     }
 
-    out = NIStemFile(output, use_alac=use_alac)
+    out = NIStemFile(output, codec, sample_rate, sample_rate)
     out.write(original.read(), {k: v.read() for k, v in stems.items()})
     out.update_metadata(
         mastered if copy_id3tags_from_mastered else None,

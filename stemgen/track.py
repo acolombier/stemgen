@@ -4,13 +4,11 @@ import logging
 from torch import tensor
 import numpy as np
 
-from .constant import SAMPLE_RATE
-
 logger = logging.getLogger(__file__)
 
 
 class Track:
-    def __init__(self, path):
+    def __init__(self, path: str, sample_rate: int):
         probe = ffmpeg.probe(path)
         self.__stream = [s for s in probe["streams"] if s["codec_type"] == "audio"]
 
@@ -21,6 +19,7 @@ class Track:
 
         self.__stream = self.__stream[0]
         self.__path = path
+        self.__sample_rate = sample_rate
 
     @property
     def audio_channels(self):
@@ -29,7 +28,7 @@ class Track:
     def read(self):
         out, _ = (
             ffmpeg.input(self.__path)
-            .output("-", format="f32le", ar=SAMPLE_RATE, ac=2)
+            .output("-", format="f32le", ar=self.__sample_rate, ac=2)
             .run(capture_stdout=True, capture_stderr=True)
         )
         wav = tensor(np.frombuffer(out, dtype=np.float32))

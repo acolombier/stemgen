@@ -8,7 +8,7 @@ from torchaudio.io import StreamWriter, CodecConfig
 import stembox
 import torch
 
-from .constant import SAMPLE_RATE, CHUNK_SIZE
+from .constant import CHUNK_SIZE, Codec
 
 logger = logging.getLogger(__file__)
 
@@ -75,24 +75,27 @@ class NIStemFile:
         "#56B4E9",
     ]
 
-    def __init__(self, path, use_alac=False):
+    def __init__(
+        self, path, codec: Codec, input_sample_rate: int, output_sample_rate: int
+    ):
         self.__path = path
+        self.__codec = codec
         self.__stream = StreamWriter(dst=path, format="mp4")
 
         self.__stream.add_audio_stream(
-            sample_rate=SAMPLE_RATE,
+            sample_rate=input_sample_rate,
             num_channels=2,
-            encoder="alac" if use_alac else "aac",
-            encoder_sample_rate=SAMPLE_RATE,
+            encoder=codec.encoder_name(),
+            encoder_sample_rate=output_sample_rate,
             encoder_num_channels=2,
             codec_config=CodecConfig(bit_rate=256000),
         )
         for i in range(4):
             self.__stream.add_audio_stream(
-                sample_rate=SAMPLE_RATE,
+                sample_rate=input_sample_rate,
                 num_channels=2,
-                encoder="alac" if use_alac else "aac",
-                encoder_sample_rate=SAMPLE_RATE,
+                encoder=codec.encoder_name(),
+                encoder_sample_rate=output_sample_rate,
                 encoder_num_channels=2,
                 codec_config=CodecConfig(bit_rate=256000),
             )
@@ -111,7 +114,15 @@ class NIStemFile:
 
     def write(self, original, stems):
         sample_count = original.shape[1] + sum([t.shape[1] for t in stems.values()])
-        with self.__stream.open():
+
+        match self.__codec:
+            case Codec.FLAC:
+                # Enable flac muxing in mp4
+                muxer_options = {"strict": "-2"}
+            case _:
+                muxer_options = {}
+
+        with self.__stream.open(option=muxer_options):
             with click.progressbar(
                 length=sample_count, show_percent=True, label="Saving stems"
             ) as progress:
