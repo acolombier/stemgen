@@ -101,14 +101,6 @@ def common_options(func):
         help="Custom color for the vocal stem (the fourth and last one)",
     )
     @click.option(
-        "--list-models",
-        is_flag=True,
-        callback=print_supported_models,
-        help="List detected and supported models usable by demucs and exit",
-        expose_value=False,
-        is_eager=True,
-    )
-    @click.option(
         "--version",
         is_flag=True,
         callback=print_version,
@@ -190,6 +182,14 @@ def main(ctx, **kwargs):
     "--jobs",
     default=1,
     help="The number of jobs to use for demucs.",
+)
+@click.option(
+    "--list-models",
+    is_flag=True,
+    callback=print_supported_models,
+    help="List detected and supported models usable by demucs and exit",
+    expose_value=False,
+    is_eager=True,
 )
 @common_options
 def generate(
