@@ -85,7 +85,7 @@ class NIStemFile:
         self.__stream.add_audio_stream(
             sample_rate=input_sample_rate,
             num_channels=2,
-            encoder=codec.encoder_name(),
+            encoder=codec.encoder_name,
             encoder_sample_rate=output_sample_rate,
             encoder_num_channels=2,
             codec_config=CodecConfig(bit_rate=256000),
@@ -94,7 +94,7 @@ class NIStemFile:
             self.__stream.add_audio_stream(
                 sample_rate=input_sample_rate,
                 num_channels=2,
-                encoder=codec.encoder_name(),
+                encoder=codec.encoder_name,
                 encoder_sample_rate=output_sample_rate,
                 encoder_num_channels=2,
                 codec_config=CodecConfig(bit_rate=256000),
