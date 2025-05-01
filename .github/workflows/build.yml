@@ -22,10 +22,26 @@ jobs:
         platform:
           - linux/amd64
           - linux/arm64
+        tag:
+          - ""
+          - cuda
+          - cuda11
+          - rocm
     steps:
       - name: Prepare
+        env:
+          TAG: ${{ matrix.tag }}
         run: |
           platform=${{ matrix.platform }}
+          if [ "$TAG" = "cuda" ]; then
+            echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/cu124" >> $GITHUB_ENV
+          elif [ "$TAG" = "cuda11" ]; then
+            echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/cu118" >> $GITHUB_ENV
+          elif [ "$TAG" = "rocm" ]; then
+            echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/rocm" >> $GITHUB_ENV
+          else
+            echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/cpu" >> $GITHUB_ENV
+          fi
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
       - name: Checkout
@@ -57,6 +73,8 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            PYTORCH_PIP_SERVER=${{ env.PYTORCH_PIP_SERVER }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' && github.repository == 'acolombier/stemgen' }}
 
       - name: Export digest
@@ -68,7 +86,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ env.PLATFORM_PAIR }}
+          name: digests-${{ matrix.tag }}-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -76,6 +94,14 @@ jobs:
   merge:
     if: github.event_name != 'pull_request' && github.repository == 'acolombier/stemgen'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tag:
+          - ""
+          - cuda
+          - cuda11
+          - rocm
     needs:
       - build
     steps:
@@ -83,7 +109,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: digests-*
+          pattern: digests-${{ matrix.tag }}-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
@@ -94,6 +120,13 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY_IMAGE }}
+          flavor: |
+            latest=auto
+            suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }},onlatest=true
+          tags: |
+            type=ref,event=branch,suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }}
+            type=ref,event=tag,suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }}
+            type=ref,event=pr,suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
