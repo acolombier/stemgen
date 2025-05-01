@@ -100,14 +100,6 @@ def common_options(func):
         metavar="<hex-color>",
         help="Custom color for the vocal stem (the fourth and last one)",
     )
-    @click.option(
-        "--version",
-        is_flag=True,
-        callback=print_version,
-        expose_value=False,
-        is_eager=True,
-        help="Display the stemgen version and exit",
-    )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
@@ -116,6 +108,14 @@ def common_options(func):
 
 
 @click.group()
+@click.option(
+    "--version",
+    is_flag=True,
+    callback=print_version,
+    expose_value=False,
+    is_eager=True,
+    help="Display the stemgen version and exit",
+)
 @click.pass_context
 def main(ctx, **kwargs):
     pass
