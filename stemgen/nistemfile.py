@@ -3,6 +3,7 @@ import click
 import tagpy
 import tagpy.id3v2
 import tagpy.ogg.flac
+import tagpy.mp4
 import logging
 from torchaudio.io import StreamWriter, CodecConfig
 import stembox
@@ -23,16 +24,16 @@ SUPPORTED_TAGS = [
 ]
 
 
-def _extract_cover(f):
-    tag = None
-    if isinstance(f, tagpy.FileRef):
-        tag = f.tag()
-        f = f.file()
+def _extract_cover(file_ref: tagpy.FileRef) -> tagpy.mp4.CoverArt:
+    tag = file_ref.tag()
+    f = file_ref.file()
     covers = []
     if hasattr(tag, "covers"):
         covers = tag.covers
     elif hasattr(tag, "pictureList"):
         covers = tag.pictureList()
+    elif hasattr(f, "pictureList"):
+        covers = f.pictureList()
     elif hasattr(f, "ID3v2Tag") and f.ID3v2Tag():
         covers = [
             a
@@ -50,14 +51,17 @@ def _extract_cover(f):
         else:
             data = cover.picture()
         mime = cover.mimeType().lower().strip()
-        if "image/jpeg":
-            fmt = tagpy.mp4.CoverArtFormats.JPEG
-        elif "image/png":
-            fmt = tagpy.mp4.CoverArtFormats.PNG
-        elif "image/bmp":
-            fmt = tagpy.mp4.CoverArtFormats.BMP
-        elif "image/gif":
-            fmt = tagpy.mp4.CoverArtFormats.GIF
+        match mime:
+            case "image/jpeg":
+                fmt = tagpy.mp4.CoverArtFormats.JPEG
+            case "image/png":
+                fmt = tagpy.mp4.CoverArtFormats.PNG
+            case "image/bmp":
+                fmt = tagpy.mp4.CoverArtFormats.BMP
+            case "image/gif":
+                fmt = tagpy.mp4.CoverArtFormats.GIF
+            case _:
+                fmt = tagpy.mp4.CoverArtFormats.Unknown
         return tagpy.mp4.CoverArt(fmt, data)
 
 
