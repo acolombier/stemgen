@@ -27,6 +27,7 @@ class Codec(StrEnum):
     FLAC = "flac"
     OPUS = "opus"
 
+    @property
     def encoder_name(self):
         # In case of opus, the ffmpeg encoder we want is called "libopus"
         # There is also one called only "opus", but it is experimental.

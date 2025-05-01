@@ -5,3 +5,13 @@ build-backend = "setuptools.build_meta"
 
 [tool.licensecheck]
 using = "requirements:requirements.txt"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+pythonpath = "."
+addopts = [
+    "--import-mode=importlib",
+]
+testpaths = [
+    "tests",
+]

@@ -157,6 +157,8 @@ Options for "genetate":
   --overlap FLOAT                 Overlap between the splits to use for
                                   demucs.
   --jobs INTEGER                  The number of jobs to use for demucs.
+  --list-models                   List detected and supported models usable by
+                                  demucs and exit
 
 Options for "create":
   --mastered FILE                 Source file for the pre-mastered track
@@ -194,8 +196,6 @@ Common options:
                                   and last one)
   --vocal-stem-color <hex-color>  Custom color for the vocal stem (the fourth
                                   and last one)
-  --list-models                   List detected and supported models usable by
-                                  demucs and exit
   --version                       Display the stemgen version and exit
   --help                          Show this message and exit.
 
