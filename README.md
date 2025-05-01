@@ -87,8 +87,35 @@ cd ..
 rm -rf taglib-2.0.1 taglib.tar.gz
 ```
 
+### PIP
+
 Once all dependencies have been successfully installed, you can install the
 python package with pip.
+
+#### CPU (no GPU acceleration)
+
+```sh
+pip install "git+https://github.com/acolombier/stemgen.git@0.3.0#egg=stemgen" \
+  --index-url "https://download.pytorch.org/whl/cpu" \
+  --extra-index-url https://pypi.org/simple
+```
+
+#### CUDA (Nvidia acceleration)
+
+> [!NOTE]
+> You can use `cu118` instead of `cu124` for CUDA 11. (Older hardware/driver)
+
+```sh
+pip install "git+https://github.com/acolombier/stemgen.git@0.3.0#egg=stemgen" \
+  --index-url "https://download.pytorch.org/whl/cu124" \
+  --extra-index-url https://pypi.org/simple
+```
+
+#### Global
+
+> [!WARNING]
+> This will install PyTorch with all dependencies for any backends, inducing
+> gigabytes of dependencies to download and store.
 
 ```sh
 pip install "git+https://github.com/acolombier/stemgen.git@0.3.0#egg=stemgen"
@@ -97,13 +124,25 @@ pip install "git+https://github.com/acolombier/stemgen.git@0.3.0#egg=stemgen"
 ### Docker (recommended)
 
 If you don't want to install `stemgen` on your machine, you can use the Docker
-container. Here the simple way to use it:
+container.
+
+### Flavour
+
+> [!WARNING]
+> The main tag (`aclmb/stemgen:0.3.0`) will include PyTorch with all dependencies
+> for any backends, inducing gigabytes of dependencies!
+
+- CPU (no hardware acceleration): `aclmb/stemgen:0.3.0-cpu`
+- Cuda 12 (Nvidia card): `aclmb/stemgen:0.3.0-cuda`
+- Cuda 11 (older Nvidia card/driver): `aclmb/stemgen:0.3.0-cuda11`
+
+Here the simple way to use it:
 
 ```sh
 docker run \
     -v /path/to/folder:/path/to/folder \
     -it --rm \
-    aclmb/stemgen:0.3.0 generate \
+    aclmb/stemgen:0.3.0-<Flavour> generate \
         /path/to/folder/Artist\ -\ Title.mp3 \
         /path/to/folder
 ```
@@ -117,7 +156,7 @@ docker run \
     -v /path/to/folder:/path/to/folder \
     -v stemgen_torch_cache:/root/.cache/torch/hub/ \
     -it --gpus --rm \
-    aclmb/stemgen:0.3.0 generate \
+    aclmb/stemgen:0.3.0-<Flavour> generate \
         /path/to/folder/Artist\ -\ Title.mp3 \
         /path/to/folder
 ```
