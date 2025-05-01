@@ -122,11 +122,11 @@ jobs:
           images: ${{ env.REGISTRY_IMAGE }}
           flavor: |
             latest=auto
-            suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }},onlatest=true
+            suffix=${{ matrix.tag != '' && format('-{0}', matrix.tag) || '' }},onlatest=true
           tags: |
-            type=ref,event=branch,suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }}
-            type=ref,event=tag,suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }}
-            type=ref,event=pr,suffix=${{ matrix.tag == '' && '' || format('-{0}', matrix.tag) }}
+            type=ref,event=branch,suffix=${{ matrix.tag != '' && format('-{0}', matrix.tag) || '' }}
+            type=ref,event=tag,suffix=${{ matrix.tag != '' && format('-{0}', matrix.tag) || '' }}
+            type=ref,event=pr,suffix=${{ matrix.tag != '' && format('-{0}', matrix.tag) || '' }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
