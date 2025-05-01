@@ -77,3 +77,9 @@ jobs:
         with:
           name: pre-commit.log
           path: /github/home/.cache/pre-commit/pre-commit.log
+  block-fixup:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Block Fixup Commit Merge
+      uses: 13rac1/block-fixup-merge-action@bd5504fb9ca0253e109d98eb86b7debc01970cdc # v2.0.0
