@@ -95,7 +95,7 @@ python package with pip.
 #### CPU (no GPU acceleration)
 
 ```sh
-pip install "git+https://github.com/acolombier/stemgen.git@0.4.0#egg=stemgen" \
+pip install "git+https://github.com/acolombier/stemgen.git@v0.4.0#egg=stemgen" \
   --index-url "https://download.pytorch.org/whl/cpu" \
   --extra-index-url https://pypi.org/simple
 ```
@@ -106,7 +106,7 @@ pip install "git+https://github.com/acolombier/stemgen.git@0.4.0#egg=stemgen" \
 > You can use `cu118` instead of `cu124` for CUDA 11. (Older hardware/driver)
 
 ```sh
-pip install "git+https://github.com/acolombier/stemgen.git@0.4.0#egg=stemgen" \
+pip install "git+https://github.com/acolombier/stemgen.git@v0.4.0#egg=stemgen" \
   --index-url "https://download.pytorch.org/whl/cu124" \
   --extra-index-url https://pypi.org/simple
 ```
@@ -118,7 +118,7 @@ pip install "git+https://github.com/acolombier/stemgen.git@0.4.0#egg=stemgen" \
 > gigabytes of dependencies to download and store.
 
 ```sh
-pip install "git+https://github.com/acolombier/stemgen.git@0.4.0#egg=stemgen"
+pip install "git+https://github.com/acolombier/stemgen.git@v0.4.0#egg=stemgen"
 ```
 
 ### Docker (recommended)
