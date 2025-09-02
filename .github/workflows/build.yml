@@ -25,8 +25,7 @@ jobs:
         tag:
           - ""
           - cuda
-          - cuda11
-          - rocm
+          - all
     steps:
       - name: Prepare
         env:
@@ -34,13 +33,9 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           if [ "$TAG" = "cuda" ]; then
-            echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/cu124" >> $GITHUB_ENV
-          elif [ "$TAG" = "cuda11" ]; then
-            echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/cu118" >> $GITHUB_ENV
-          elif [ "$TAG" = "rocm" ]; then
-            echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/rocm" >> $GITHUB_ENV
-          else
-            echo "PYTORCH_PIP_SERVER=https://download.pytorch.org/whl/cpu" >> $GITHUB_ENV
+            echo "BUILD_ARGS=--features cuda" >> $GITHUB_ENV
+          elif [ "$TAG" = "all" ]; then
+            echo "BUILD_ARGS=--all-features" >> $GITHUB_ENV
           fi
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
@@ -74,7 +69,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            PYTORCH_PIP_SERVER=${{ env.PYTORCH_PIP_SERVER }}
+            BUILD_ARGS=${{ env.BUILD_ARGS }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' && github.repository == 'acolombier/stemgen' }}
 
       - name: Export digest
@@ -100,8 +95,7 @@ jobs:
         tag:
           - ""
           - cuda
-          - cuda11
-          - rocm
+          - all
     needs:
       - build
     steps:

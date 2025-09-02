@@ -1,10 +1,10 @@
-build
 .codespellignore
-dist
+.devcontainer
 .dockerignore
-Dockerfile
 .git
+.github
 .gitignore
 .pre-commit-config.yaml
-UNKNOWN.egg-info
-.vscode
+CONTRIBUTING.md
+Dockerfile
+**/target

@@ -1,0 +1,21 @@
+{
+  "name": "stemgen",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": "false",
+      "upgradePackages": "false"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "eamodio.gitlens"
+      ]
+    }
+  },
+  //   "postCreateCommand": "git config --global core.excludesFile '/home/developer/.gitignore' && git config --global --add safe.directory ${containerWorkspaceFolder} && pre-commit install --overwrite --install-hooks"
+}
