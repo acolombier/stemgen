@@ -4,7 +4,16 @@
 ![GitHub Release](https://img.shields.io/github/v/release/acolombier/stemgen?include_prereleases)
 ![Docker Image](https://img.shields.io/docker/v/aclmb/stemgen)
 
-> NOTE: Stemgen currently doesn't have a stable release. Please use carefully!
+> [!WARNING]
+> **Breaking change are coming in version 0.5.0!**
+> Stemgen is being rewritten in Rust and will leverage the ONNX version of Demucs.
+> See [#30](https://github.com/acolombier/stemgen/issues/30) if you encounter any
+> issues!
+
+---
+
+> [!NOTE]
+> Stemgen currently doesn't have a stable release. Please use carefully!
 
 Stemgen is a library and tool that can be used to generate NI stem files
 from most audio files. It is inspired from the the tool of the same name
@@ -37,7 +46,7 @@ Under the hood, it uses:
 > [open a issue](https://github.com/acolombier/stemgen/issues) if your platform
 > isn't supported
 
-### Python package
+### Python package (prior to version 0.5.0)
 
 Before you can install the Python package, you will need to install the
 dependencies.
@@ -346,6 +355,4 @@ Samsung 980 PRO SSD
 
 ## License
 
-Stemgen is released under a [MIT license](LICENSE). `stembox`, which is a
-component of Stemgen used to generate stem manifest is released under a
-[LGPL License](stembox/LICENSE) as it reuse battle-tested code from TagLib
+Stemgen is released under a [MIT license](LICENSE).
