@@ -4,12 +4,30 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
+  "runArgs": [
+    "--device=/dev/snd"
+  ],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": "false",
       "upgradePackages": "false"
     }
   },
+  "containerEnv": {
+    "WAYLAND_DISPLAY": "/run/user/1000/wayland-0",
+    "PULSE_SERVER": "=unix:${containerEnv:XDG_RUNTIME_DIR}/pulse/native"
+  },
+  "mounts": [
+    "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/wayland-0,target=/run/user/1000/wayland-0",
+    "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/pulse,target=/run/user/1000/pulse",
+    "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/bus,target=/run/user/1000/bus",
+    "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/pipewire-0,target=/run/user/1000/pipewire-0",
+    "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/pipewire-0.lock,target=/run/user/1000/pipewire-0.lock",
+    "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/pipewire-0-manager,target=/run/user/1000/pipewpipewire-0-manager",
+    "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/pipewire-0-manager.lock,target=/run/user/1000/pipewpipewire-0-manager.lock",
+    "type=bind,source=${localEnv:HOME}/.config/pulse/cookie,target=/home/vscode/.config/pulse/cookie",
+    "type=bind,source=${localEnv:HOME}/Music,target=${localEnv:HOME}/Music"
+  ],
   "customizations": {
     "vscode": {
       "extensions": [

@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/devcontainers/rust:latest
 RUN sudo apt-get update && \
-    sudo apt-get install -y cmake libutfcpp-dev unzip libavcodec-dev libavformat-dev libavutil-dev pkg-config clang yasm && \
+    sudo apt-get install -y cmake libutfcpp-dev unzip libavcodec-dev libavformat-dev libavutil-dev pkg-config clang yasm libasound2-dev protobuf-compiler libxkbcommon-x11-0 zenity && \
     wget -O taglib.zip https://github.com/acolombier/taglib/archive/refs/heads/feat/mp4-ni-stem.zip && \
     unzip taglib.zip && \
     cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF taglib-feat-mp4-ni-stem && \
