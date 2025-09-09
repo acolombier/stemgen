@@ -1159,7 +1159,7 @@ dependencies = [
 [[package]]
 name = "taglib"
 version = "2.1.1"
-source = "git+https://github.com/acolombier/taglib-rust.git?tag=v2.1.1#467528160688a15ff983d491b9806d8e8742bc2c"
+source = "git+https://github.com/acolombier/taglib-rust.git?tag=v2.1.1#46c781e321c4cc4289526a2059098e6e1589036d"
 dependencies = [
  "libc",
  "taglib-sys",
@@ -1168,7 +1168,7 @@ dependencies = [
 [[package]]
 name = "taglib-sys"
 version = "2.1.1"
-source = "git+https://github.com/acolombier/taglib-rust.git?tag=v2.1.1#467528160688a15ff983d491b9806d8e8742bc2c"
+source = "git+https://github.com/acolombier/taglib-rust.git?tag=v2.1.1#46c781e321c4cc4289526a2059098e6e1589036d"
 dependencies = [
  "libc",
  "pkg-config",
