@@ -11,6 +11,22 @@ fn parse_color(value: &str) -> Result<Color, String> {
     value.try_into()
 }
 
+fn parse_codec(value: &str) -> Result<Codec, String> {
+    value.try_into()
+}
+
+fn parse_samplerate(value: &str) -> Result<SampleRate, String> {
+    value.try_into()
+}
+
+fn parse_device(value: &str) -> Result<Device, String> {
+    value.try_into()
+}
+
+fn parse_model(value: &str) -> Result<Model, String> {
+    value.try_into()
+}
+
 /// A fictional versioning CLI
 #[derive(Debug, Parser, Default)] // requires `derive` feature
 #[command(name = "stemgen")]
@@ -23,9 +39,9 @@ pub struct Cli {
     pub force: bool,
     #[arg(long, help = "Display verbose information which may be useful for debugging", default_value_t = false, action = ArgAction::SetTrue, global = true)]
     pub verbose: bool,
-    #[arg(short, long, help = "The codec to use for the stem stream stored in the output MP4", value_enum, value_parser = value_parser!(Codec), default_value = "aac", global = true)]
+    #[arg(short, long, help = "The codec to use for the stem stream stored in the output MP4", value_enum, value_parser = ValueParser::new(parse_codec), default_value = "aac", global = true)]
     pub codec: Codec,
-    #[arg(short, long, help = "The sample rate to use for the output", value_enum, value_parser = value_parser!(SampleRate), default_value = "44100", global = true)]
+    #[arg(short, long, help = "The sample rate to use for the output", value_enum, value_parser = ValueParser::new(parse_samplerate), default_value = "44100", global = true)]
     pub sample_rate: SampleRate,
     #[arg(long, help = "Custom label for the drum stem (the first one)", value_name = "LABEL", default_value_t = STEM_DEFAULT_LABEL[0].to_owned(), global = true)]
     pub drum_stem_label: String,
@@ -73,13 +89,13 @@ pub struct CreateArgs {
 
 #[derive(Debug, Parser, Default)]
 pub struct GenerateArgs {
-    #[arg(num_args = 1.., value_name = "FILES", help = "path(s) to a file supported by the FFmpeg codec available on your machine", value_parser = value_parser!(PathBuf), required = true)]
-    pub files: Vec<PathBuf>,
+    #[arg(num_args = 1.., value_name = "FILES", help = "path(s) to a file supported by the FFmpeg codec available on your machine. Advanced glob pattern can be used such as '~/Music/**/*.mp3'", required = true)]
+    pub files: Vec<String>,
     #[arg(value_name = "OUTPUT", help = "path to an existing directory where to store the generated STEM file(s)", value_parser = value_parser!(PathBuf), required = true)]
     pub output: PathBuf,
-    #[arg(long, value_name = "DEVICE", help = "Device for the demucs model inference", value_parser = value_parser!(Device), default_value_t = Device::CPU)]
+    #[arg(long, value_name = "DEVICE", help = "Device for the demucs model inference", value_parser = ValueParser::new(parse_device), default_value_t = Device::CPU)]
     pub device: Device,
-    #[arg(long, value_name = "PATH", help = "The model to use with demucs. Default to htdemucs fine-trained", value_parser = value_parser!(Model), default_value = DEFAULT_MODEL)]
+    #[arg(long, value_name = "PATH", help = "The model to use with demucs. Default to htdemucs fine-trained", value_parser = ValueParser::new(parse_model), default_value = DEFAULT_MODEL)]
     pub model: Model,
     #[arg(
         long,

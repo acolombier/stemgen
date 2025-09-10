@@ -47,12 +47,15 @@ impl std::fmt::Display for Device {
     }
 }
 
-impl From<String> for Device {
-    fn from(value: String) -> Self {
-        match value.as_str() {
+impl TryFrom<&str> for Device {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
             #[cfg(feature = "cuda")]
-            "cuda" => Device::CUDA,
-            _ => Device::CPU,
+            "cuda" => Ok(Device::CUDA),
+            "cpu" => Ok(Device::CPU),
+            _ => Err("unsupported device".to_owned()),
         }
     }
 }
@@ -66,12 +69,19 @@ impl std::fmt::Display for Model {
     }
 }
 
-impl From<&str> for Model {
-    fn from(value: &str) -> Self {
+impl TryFrom<&str> for Model {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         if value.starts_with("http") {
-            Self::Url(value.to_owned())
+            Ok(Self::Url(value.to_owned()))
         } else {
-            Self::Local(Path::new(&value).to_path_buf())
+            let path = Path::new(&value);
+            if !path.exists() {
+                Err("unable to find the model".to_owned())
+            } else {
+                Ok(Self::Local(path.to_path_buf()))
+            }
         }
     }
 }

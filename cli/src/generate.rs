@@ -1,3 +1,6 @@
+use std::{ffi::OsStr, path::PathBuf};
+
+use glob::glob;
 use indicatif::{ProgressBar, ProgressStyle};
 use stemgen::{
     demucs::{Demucs, DemusOpts},
@@ -6,6 +9,41 @@ use stemgen::{
 };
 
 use crate::cli::{Cli, GenerateArgs};
+
+fn split_file_at_dot(file: &OsStr) -> (&OsStr, Option<&OsStr>) {
+    let slice = file.as_encoded_bytes();
+    if slice == b".." {
+        return (file, None);
+    }
+
+    let mut current_idx = slice.len();
+
+    while current_idx > 0 {
+        match slice[1..current_idx].iter().rposition(|b| *b == b'.') {
+            Some(i) =>  {
+                let ext = &slice[i+1..].to_ascii_lowercase();
+                if !ext.iter().all(|c|(*c >= b'0' && *c <= b'9') || (*c >= b'a' && *c <= b'z') || *c == b'.') {
+                    break;
+                }
+                current_idx = i + 1;
+            },
+            None => break,
+        };
+    }
+
+    if current_idx == slice.len() {
+        return (file, None)
+    }
+
+    let before = &slice[..current_idx];
+    let after = &slice[current_idx..];
+    unsafe {
+        (
+            OsStr::from_encoded_bytes_unchecked(before),
+            Some(OsStr::from_encoded_bytes_unchecked(after)),
+        )
+    }
+}
 
 pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::error::Error>> {
     let mut demucs = Demucs::new_from_file(
@@ -18,14 +56,28 @@ pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::
     let mut has_failure = false;
     let sample_rate: u64 = ctx.sample_rate.into();
 
-    for file in &command.files {
-        let filename = file.file_name().unwrap();
+    let mut files: Vec<Result<glob::Paths, glob::PatternError>> = command.files.iter().map(|raw|glob(&raw)).collect();
+
+    if let Some(err) = files.iter().find_map(|r|r.as_ref().err()) {
+        return Err(format!("unable to render the glob: {}", err).into())
+    }
+
+    let files: Vec<PathBuf> = files.iter_mut().filter_map(|r|r.as_mut().ok()).flatten().filter_map(|r|r.ok()).collect();
+
+    for file in &files {
+        let filename = file.file_name().map(split_file_at_dot).and_then(|(before, _after)| Some(before));
+        if filename.is_none() {
+            eprintln!(
+                "Unable to detect filename from {}",
+                file.display()
+            );
+            has_failure |= true;
+            continue;
+        }
+        let filename = filename.unwrap();
         let output_filename = format!(
             "{}.{}",
-            filename
-                .to_str()
-                .map(|s| s.split('.').next().unwrap())
-                .unwrap(),
+            filename.display(),
             ctx.ext
         );
         let output_file = command.output.join(output_filename);
@@ -33,7 +85,7 @@ pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::
             if !ctx.force {
                 eprintln!(
                     "Cannot proceed with {}: stem file already exist in output directory!",
-                    file.display()
+                    output_file.display()
                 );
                 has_failure |= true;
                 continue;
@@ -51,7 +103,7 @@ pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::
         let pb = ProgressBar::new(2 * input.total() as u64);
         pb.set_style(
             ProgressStyle::with_template(
-                "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {percent}% ({eta})",
+                &format!("{{spinner:.green}} {} [{{wide_bar:.cyan/blue}}] [{{elapsed_precise}}] {{percent}}% ({{eta}})", filename.display()),
             )
             .unwrap()
             .progress_chars("#>-"),
@@ -130,9 +182,11 @@ pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::
 #[cfg(test)]
 mod tests {
 
+    use std::path::Path;
+
     use stemgen::nistem::{Codec, SampleRate};
 
-    use crate::{cli::GenerateArgs, constants::DEFAULT_EXT, generate::generate, Cli, Commands};
+    use crate::{cli::GenerateArgs, constants::DEFAULT_EXT, generate::{generate, split_file_at_dot}, Cli, Commands};
 
     #[test]
     fn test_generate_command() {
@@ -159,5 +213,38 @@ mod tests {
         } else {
             unreachable!("unexpected command value")
         }
+
+        let ctx = Cli {
+            force: true,
+            verbose: false,
+            codec: Codec::OPUS,
+            sample_rate: SampleRate::Hz48000,
+            ext: DEFAULT_EXT.to_owned(),
+            command: Commands::Generate(GenerateArgs {
+                files: vec!["../**/*.mp3".into()],
+                output: "..".into(),
+                preserved_original_as_master: false,
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        if let Commands::Generate(command) = &ctx.command {
+            let result = generate(&ctx, command);
+            assert!(
+                matches!(result, Ok(false)),
+                "Expected value to match pattern, but got: {result:?}"
+            );
+        } else {
+            unreachable!("unexpected command value")
+        }
+    }
+
+    #[test]
+    fn test_can_get_file_name(){
+        let file_name = Path::new("Flo Rida - Low (feat. T-Pain).ogg").file_name().map(split_file_at_dot).and_then(|(before, _after)| Some(before)).unwrap().to_str().unwrap().to_owned();
+        assert_eq!(&file_name, "Flo Rida - Low (feat. T-Pain)");
+
+        let file_name = Path::new("Flo Rida - Low (feat. T-Pain).stem.mp4").file_name().map(split_file_at_dot).and_then(|(before, _after)| Some(before)).unwrap().to_str().unwrap().to_owned();
+        assert_eq!(&file_name, "Flo Rida - Low (feat. T-Pain)");
     }
 }

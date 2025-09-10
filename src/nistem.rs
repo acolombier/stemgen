@@ -27,13 +27,16 @@ pub enum SampleRate {
     Hz48000,
 }
 
-impl From<String> for Codec {
-    fn from(value: String) -> Self {
-        match value.as_str() {
-            "alac" => Codec::ALAC,
-            "flac" => Codec::FLAC,
-            "opus" => Codec::OPUS,
-            _ => Codec::AAC,
+impl TryFrom<&str> for Codec {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "alac" => Ok(Codec::ALAC),
+            "flac" => Ok(Codec::FLAC),
+            "opus" => Ok(Codec::OPUS),
+            "aac" => Ok(Codec::AAC),
+            _ => Err("unknown or unsupported codec".to_owned()),
         }
     }
 }
@@ -60,11 +63,14 @@ impl std::fmt::Display for Codec {
     }
 }
 
-impl From<String> for SampleRate {
-    fn from(value: String) -> Self {
-        match value.as_str() {
-            "48000" => SampleRate::Hz48000,
-            _ => SampleRate::Hz44100,
+impl TryFrom<&str> for SampleRate {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "48000" => Ok(SampleRate::Hz48000),
+            "44100" => Ok(SampleRate::Hz44100),
+            _ => Err("unsupported samplerate".to_owned()),
         }
     }
 }

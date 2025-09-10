@@ -1,10 +1,14 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use ffmpeg_next::{
-    codec, decoder, format::{self, context}, frame::Audio, media, software::resampling, Packet, Rational
+    codec, decoder, ffi::av_rescale_q, format::{self, context}, frame::Audio, media, software::resampling, Packet, Rational
 };
+use taglib::AttachedPicture;
+
+use crate::constant::{Metadata, MetadataValue};
 
 pub struct Track {
+    path: PathBuf,
     ctx: context::Input,
     index: usize,
     resampler: resampling::context::Context,
@@ -21,8 +25,7 @@ impl Track {
         let stream = ctx
             .streams()
             .best(media::Type::Audio)
-            .ok_or("unable to find an audio stream")
-            ?;
+            .ok_or("unable to find an audio stream")?;
         let index = stream.index();
 
         let context_decoder =
@@ -36,10 +39,10 @@ impl Track {
             format::Sample::F32(format::sample::Type::Packed),
             ffmpeg_next::ChannelLayout::STEREO,
             44100,
-        )
-        ?;
+        )?;
 
         Ok(Self {
+            path: path.clone(),
             ctx,
             index,
             resampler,
@@ -50,7 +53,8 @@ impl Track {
     }
 
     pub fn args(&self) -> (codec::Parameters, Rational) {
-        let stream = self.ctx
+        let stream = self
+            .ctx
             .streams()
             .find(|s| s.index() == self.index)
             .unwrap();
@@ -61,6 +65,12 @@ impl Track {
         let stream = self.ctx.stream(self.index).unwrap();
         stream.time_base().numerator() as i64 * stream.duration()
             / stream.time_base().denominator() as i64
+    }
+    pub fn total_samples(&self) -> i64 {
+        let stream = self.ctx.stream(self.index).unwrap();
+        unsafe {
+            av_rescale_q(stream.duration() * self.decoder.channels() as i64, stream.time_base().into(), self.decoder.time_base().into())
+        }
     }
 }
 
@@ -137,9 +147,7 @@ impl Track {
 
                     finished = match self.resampler.flush(&mut resampled) {
                         Ok(None) => true,
-                        Ok(_) | Err(_) => {
-                            false
-                        }
+                        Ok(_) | Err(_) => false,
                     };
                     if resampled.planes() == 0 {
                         break;
@@ -151,5 +159,40 @@ impl Track {
             }
         }
         Ok(read)
+    }
+    pub fn tags(&self) -> HashMap<Metadata, MetadataValue> {
+        taglib::File::new(&self.path)
+            .map(|f| {
+                f.tag()
+                    .map(|tags| {
+                        let mut metadata = HashMap::new();
+                        if let Some(value) = tags.title() {
+                            metadata.insert(Metadata::Title, value.into());
+                        }
+                        if let Some(value) = tags.artist() {
+                            metadata.insert(Metadata::Artist, value.into());
+                        }
+                        if let Some(value) = tags.album() {
+                            metadata.insert(Metadata::Release, value.into());
+                        }
+                        if let Some(value) = tags.comment() {
+                            metadata.insert(Metadata::Label, value.into());
+                        }
+                        if let Some(value) = tags.genre() {
+                            metadata.insert(Metadata::Genre, value.into());
+                        }
+                        if let Some(value) = tags.track() {
+                            metadata.insert(Metadata::TrackNo, value.into());
+                        }
+                        metadata
+                    })
+                    .unwrap_or(HashMap::new())
+            })
+            .unwrap_or(HashMap::new())
+    }
+    pub fn covers(&self) -> Vec<AttachedPicture> {
+        taglib::File::new(&self.path)
+            .map(|f| f.pictures().unwrap_or(vec![]))
+            .unwrap_or(vec![])
     }
 }
