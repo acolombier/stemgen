@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM --platform=$BUILDPLATFORM rust:1-slim-bookworm AS builder
+FROM --platform=$BUILDPLATFORM rust:1-slim-trixie AS builder
 ARG TARGETARCH
 ENV CARGO_HOME=/root/.cargo
 ENV DEBIAN_FRONTEND=noninteractive
@@ -38,14 +38,13 @@ RUN --mount=type=cache,target=/build/target/release/build \
     --mount=type=cache,target=/root/.cargo/ \
     cargo test --release --workspace $BUILD_ARGS
 
-FROM --platform=$BUILDPLATFORM debian:bookworm-slim
+FROM --platform=$BUILDPLATFORM debian:trixie-slim
 ARG TARGETARCH
 ARG BUILD_ARGS=--all-features
 RUN --mount=type=cache,id=final,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=final,target=/var/lib/apt,sharing=locked \
     apt-get update && \
-    # apt-get install -y libavcodec61 libavformat61 libavutil59 ca-certificates && \# Trixie
-    apt-get install -y libavcodec59 libavformat59 libavutil57 ca-certificates wget && \
+    apt-get install -y libavcodec61 libavformat61 libavutil59 ca-certificates wget && \
     test -z "${BUILD_ARGS}" || (\
         wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb && \
         dpkg -i cuda-keyring_1.1-1_all.deb && \

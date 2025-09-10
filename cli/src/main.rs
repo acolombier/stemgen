@@ -32,8 +32,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use clap::Parser;
     use stemgen::{
         demucs::{Device, Model},
@@ -54,7 +52,7 @@ mod tests {
             "./my_file.mp3",
             "~/MyMusic",
             "--model",
-            "../htdemucs.onnx",
+            "http://example.com/htdemucs.onnx",
         ];
         let ctx = Cli::try_parse_from(arg_vec);
         assert!(
@@ -69,7 +67,7 @@ mod tests {
                         files,
                         output,
                         device: Device::CPU,
-                        model: Model::Local(model_url),
+                        model: Model::Url(model_url),
                         thread: 4,
                         preserved_original_as_master: false
                     }),
@@ -88,9 +86,9 @@ mod tests {
                     other_stem_label == "Other" &&
                     vocal_stem_label == "Vocals" &&
                     ext == "stem.mp4" &&
-                    model_url.display().to_string() == "../htdemucs.onnx" &&
+                    model_url == "http://example.com/htdemucs.onnx" &&
                     output.display().to_string() == "~/MyMusic" &&
-                    *files == [<&str as Into<PathBuf>>::into("./my_file.mp3")]
+                    *files == [<&str as Into<String>>::into("./my_file.mp3")]
                 )
             ),
             "Expected value to match pattern, but got: {ctx:?}"
