@@ -3,6 +3,7 @@ use std::{ffi::OsStr, path::PathBuf};
 use glob::glob;
 use indicatif::{ProgressBar, ProgressStyle};
 use stemgen::{
+    audio_ops::planar_to_interleaved,
     demucs::{Demucs, DemusOpts},
     nistem::{self, NIStem},
     track::Track,
@@ -51,10 +52,11 @@ pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::
         DemusOpts {
             threads: command.thread,
             device: command.device,
+            overlap: command.overlap,
+            transition_power: command.transition_power,
         },
     )?;
     let mut has_failure = false;
-    let sample_rate: u64 = ctx.sample_rate.into();
 
     let mut files: Vec<Result<glob::Paths, glob::PatternError>> = command.files.iter().map(|raw|glob(&raw)).collect();
 
@@ -99,8 +101,8 @@ pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::
             NIStem::new_with_consistent_streams(&output_file, ctx)?
         };
         nistem.clone(file)?;
-        let mut read = 0;
-        let pb = ProgressBar::new(2 * input.total() as u64);
+
+        let pb = ProgressBar::new(100);
         pb.set_style(
             ProgressStyle::with_template(
                 &format!("{{spinner:.green}} {} [{{wide_bar:.cyan/blue}}] [{{elapsed_precise}}] {{percent}}% ({{eta}})", filename.display()),
@@ -109,46 +111,58 @@ pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::
             .progress_chars("#>-"),
         );
 
-        loop {
-            let mut buf: Vec<f32> = vec![0f32; 343980 * 2];
-            let mut original_packets = Vec::with_capacity(512);
-            let mut original_buffer: Vec<f32> = Vec::with_capacity(512);
+        // Read entire audio file into memory
+        let total_samples = input.total_samples() as usize;
+        let mut audio_buffer: Vec<f32> = vec![0f32; total_samples];
+        let mut original_packets = Vec::with_capacity(512);
+        let mut read_offset = 0;
 
-            let (data, eof) = loop {
-                let size = input.read(
-                    if matches!(nistem, NIStem::PreservedMaster(..)) {
-                        Some(&mut original_packets)
-                    } else {
-                        None
-                    },
-                    &mut buf,
-                )?;
-                read += size;
-                if matches!(nistem, NIStem::ConsistentStream(..)) {
-                    original_buffer.extend(buf[..size].to_vec());
-                }
-                if let Some(mut data) = demucs.send(&buf[..size])? {
-                    if matches!(nistem, NIStem::ConsistentStream(..)) {
-                        data.insert(0, original_buffer);
-                    }
-                    break (data, false)
-                }
-                if size != buf.len() {
-                    let mut data = demucs.flush()?;
-                    if matches!(nistem, NIStem::ConsistentStream(..)) {
-                        data.insert(0, original_buffer);
-                    }
-                    break (data, true);
-                }
-            };
-            pb.set_position(read as u64 / sample_rate);
-            match nistem {
-                NIStem::PreservedMaster(..) => nistem.write_preserved(original_packets, data)?,
-                NIStem::ConsistentStream(..) => nistem.write_consistent(data)?,
-            }
+        pb.set_message("Reading audio...");
+        while read_offset < audio_buffer.len() {
+            let remaining = audio_buffer.len() - read_offset;
+            let chunk_size = std::cmp::min(343980 * 2, remaining);
+            let size = input.read(
+                if matches!(nistem, NIStem::PreservedMaster(..)) {
+                    Some(&mut original_packets)
+                } else {
+                    None
+                },
+                &mut audio_buffer[read_offset..read_offset + chunk_size],
+            )?;
 
-            if eof {
+            if size == 0 {
+                audio_buffer.truncate(read_offset);
                 break;
+            }
+            read_offset += size;
+            pb.set_position((read_offset as u64 * 10) / total_samples as u64);
+        }
+
+        // Process with demucs using overlap
+        pb.set_message("Processing stems...");
+        let stems = demucs.process(&audio_buffer, |current, total| {
+            let progress = 10 + (current as u64 * 80) / total as u64;
+            pb.set_position(progress);
+        })?;
+        pb.set_position(90);
+
+        // Write stems
+        pb.set_message("Writing output...");
+
+        // Convert stems from planar to interleaved
+        let stems_interleaved: Vec<Vec<f32>> = stems.into_iter()
+            .map(|[left, right]| planar_to_interleaved(&left, &right))
+            .collect();
+
+        match nistem {
+            NIStem::PreservedMaster(..) => {
+                nistem.write_preserved(original_packets, stems_interleaved)?;
+            },
+            NIStem::ConsistentStream(..) => {
+                // Original audio is already interleaved, prepend it to stems
+                let mut data_with_original = vec![audio_buffer];
+                data_with_original.extend(stems_interleaved);
+                nistem.write_consistent(data_with_original)?;
             }
         }
 

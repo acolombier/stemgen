@@ -485,7 +485,7 @@ impl NIStem {
         }
         for (stream_idx, ((idx, encoder, resampler, timestamp), mut frames)) in inner.idx_encoders.iter_mut().zip(stems).enumerate() {
             let frame_size = 2 * encoder.frame_size() as usize;
-            if !inner.overrun[stream_idx].is_empty(){
+            if !inner.overrun[stream_idx].is_empty() {
                 frames = {
                     let mut v = inner.overrun[stream_idx].clone();
                     v.extend(frames);
