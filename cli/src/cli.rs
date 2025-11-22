@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Component, PathBuf};
 
 use clap::{builder::ValueParser, value_parser, ArgAction, Parser, Subcommand};
 use stemgen::{
@@ -61,6 +61,8 @@ pub struct Cli {
     pub vocal_stem_color: Color,
     #[arg(short, long, help = "Extension for the STEM file", value_name = "EXT", default_value_t = DEFAULT_EXT.to_owned(), global = true)]
     pub ext: String,
+    #[arg(long, help = "Enable the experimental features. These features may be unsafe, use this carefully and consider having a backup of your data.", default_value_t = false, global = true)]
+    pub experimental: bool,
 }
 
 impl From<&'_ Cli> for (ffmpeg_next::codec::Id, i32) {
@@ -87,6 +89,94 @@ pub struct CreateArgs {
     pub copy_id3tags_from_mastered: bool,
 }
 
+#[derive(Debug, Parser, Default, Copy, Clone, PartialEq)]
+pub enum DeleteOriginal {
+    #[default]
+    No,
+    #[cfg(unix)]
+    Symlink,
+    Yes
+}
+
+fn diff_paths(old: &PathBuf, new: &PathBuf) -> Result<PathBuf, Box<dyn std::error::Error>>
+{
+    let mut ita = new.parent().ok_or("expected a parented target")?.components();
+    let mut itb = old.parent().ok_or("expected a parented target")?.components();
+    let mut comps: Vec<Component> = vec![];
+
+    // ./foo and foo are the same
+    if let Some(Component::CurDir) = ita.clone().next() {
+        ita.next();
+    }
+    if let Some(Component::CurDir) = itb.clone().next() {
+        itb.next();
+    }
+
+    loop {
+        match (ita.next(), itb.next()) {
+            (None, None) => break,
+            (Some(a), None) => {
+                comps.push(a);
+                comps.extend(ita.by_ref());
+                break;
+            }
+            (None, _) => comps.push(Component::ParentDir),
+            (Some(a), Some(b)) if comps.is_empty() && a == b => (),
+            (Some(a), Some(b)) if b == Component::CurDir => comps.push(a),
+            (Some(_), Some(b)) if b == Component::ParentDir => return Err("unexpected parent dir".into()),
+            (Some(a), Some(_)) => {
+                comps.push(Component::ParentDir);
+                for _ in itb {
+                    comps.push(Component::ParentDir);
+                }
+                comps.push(a);
+                comps.extend(ita.by_ref());
+                break;
+            }
+        }
+    }
+    let rel: PathBuf = comps.iter().map(|c| c.as_os_str()).collect();
+    let filename = new.file_name().ok_or("missing filename in target")?;
+    Ok(rel.join(filename))
+}
+
+impl DeleteOriginal {
+    pub(crate) fn proceed(&self, original: &PathBuf, new: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+        match self {
+            DeleteOriginal::No => Ok(()),
+            #[cfg(unix)]
+            DeleteOriginal::Symlink => {
+                use std::fs::canonicalize;
+
+                let new = canonicalize(new)?;
+                let original = canonicalize(original)?;
+                std::fs::remove_file(&original)?;
+
+                std::os::unix::fs::symlink(diff_paths(&original, &new)?, original)
+            },
+            DeleteOriginal::Yes =>
+                std::fs::remove_file(original),
+        }.map_err(|e|e.into())
+    }
+}
+
+fn parse_deleteoriginal(value: &str) -> Result<DeleteOriginal, String> {
+    value.try_into()
+}
+
+impl TryFrom<&str> for DeleteOriginal {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_ascii_lowercase().as_str() {
+            "no" => Ok(Self::No),
+            "symlink" => Ok(Self::Symlink),
+            "yes" => Ok(Self::Yes),
+            _ => Err("unsupported value".to_owned()),
+        }
+    }
+}
+
 #[derive(Debug, Parser, Default)]
 pub struct GenerateArgs {
     #[arg(num_args = 1.., value_name = "FILES", help = "path(s) to a file supported by the FFmpeg codec available on your machine. Advanced glob pattern can be used such as '~/Music/**/*.mp3'", required = true)]
@@ -104,8 +194,10 @@ pub struct GenerateArgs {
         default_value_t = 4
     )]
     pub thread: usize,
-    #[arg(long, default_value_t = false)]
-    pub preserved_original_as_master: bool,
+    #[arg(long, help = "Keep the original stereo track as the mastered channel, without resampling and reencoding it. Require to use the experimental mode", default_value_t = false)]
+    pub preserve_original_as_master: bool,
+    #[arg(long, value_enum, help = "Remove the original stereo file, once a stem file has been generate. Require to use the experimental mode.", value_parser = ValueParser::new(parse_deleteoriginal), default_value = "no")]
+    pub delete_original: DeleteOriginal,
 }
 
 #[derive(Debug, Subcommand)]
@@ -134,12 +226,32 @@ pub fn prepare_ffmpeg(ctx: &Cli) -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use clap::CommandFactory;
 
-    use crate::Cli;
+    use crate::{cli::diff_paths, Cli};
 
     #[test]
     fn verify_cmd() {
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn test_can_resolve_relative_to_original(){
+        let original = PathBuf::from("../Tit.le - Artist.mp3");
+        let new = PathBuf::from("../Tit.le - Artist.stem.mp4");
+
+        assert_eq!(diff_paths(&original, &new).unwrap(), PathBuf::from("Tit.le - Artist.stem.mp4"));
+
+        let original = PathBuf::from("./Tit.le - Artist.mp3");
+        let new = PathBuf::from("../Tit.le - Artist.stem.mp4");
+
+        assert_eq!(diff_paths(&original, &new).unwrap(), PathBuf::from("../Tit.le - Artist.stem.mp4"));
+
+        let original = PathBuf::from("/mnt/foo/Tit.le - Artist.mp3");
+        let new = PathBuf::from("/mnt/bar/Tit.le - Artist.stem.mp4");
+
+        assert_eq!(diff_paths(&original, &new).unwrap(), PathBuf::from("../bar/Tit.le - Artist.stem.mp4"));
     }
 }
