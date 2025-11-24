@@ -17,7 +17,7 @@ jobs:
     container: holzhaus/mixxx-ci:20220930@sha256:c219b780280a21566111e8bd3df7a0d495922aca96a927aa1fef12b2095fa5d8
     steps:
       - name: "Check out repository"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Unfortunately we need the whole history and can't use a shallow clone
           # because the Appstream Metadata hook parses the history to find the
@@ -80,6 +80,6 @@ jobs:
   block-fixup:
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Block Fixup Commit Merge
       uses: 13rac1/block-fixup-merge-action@bd5504fb9ca0253e109d98eb86b7debc01970cdc # v2.0.0
