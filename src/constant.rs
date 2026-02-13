@@ -29,3 +29,24 @@ pub enum MetadataValue {
     String(String),
     Number(u32),
 }
+
+impl std::fmt::Display for MetadataValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MetadataValue::String(s) => f.write_str(s),
+            MetadataValue::Number(i) => write!(f, "{}", i),
+        }
+    }
+}
+ impl ToString for Metadata {
+    fn to_string(&self) -> String {
+        match self {
+            Metadata::Title => "Title".to_owned(),
+            Metadata::Artist => "Artist".to_owned(),
+            Metadata::Release => "Release".to_owned(),
+            Metadata::Label => "Label".to_owned(),
+            Metadata::Genre => "Genre".to_owned(),
+            Metadata::TrackNo => "Track No".to_owned(),
+        }
+    }
+ }

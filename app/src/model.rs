@@ -553,11 +553,35 @@ impl File {
 
 impl File {
     pub fn new(path: &PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
-        let file = Track::new(path)?;
         let id = Uuid::new_v4();
-        let metadata = file.tags();
-        let cover = file
-            .covers()
+        let tagfile = taglib::File::new(path).map_err(|e: taglib::FileError| format!("{e:?}"))?;
+        let metadata = match tagfile.tag() {
+            Ok(tags) => {
+                let mut metadata = HashMap::new();
+                if let Some(value) = tags.title() {
+                    metadata.insert(Metadata::Title, MetadataValue::String(value));
+                }
+                if let Some(value) = tags.artist() {
+                    metadata.insert(Metadata::Artist, MetadataValue::String(value));
+                }
+                if let Some(value) = tags.album() {
+                    metadata.insert(Metadata::Release, MetadataValue::String(value));
+                }
+                if let Some(value) = tags.comment() {
+                    metadata.insert(Metadata::Label, MetadataValue::String(value));
+                }
+                if let Some(value) = tags.genre() {
+                    metadata.insert(Metadata::Genre, MetadataValue::String(value));
+                }
+                if let Some(value) = tags.track() {
+                    metadata.insert(Metadata::TrackNo, MetadataValue::Number(value));
+                }
+                metadata
+            }
+            Err(_) => HashMap::new(),
+        };
+        let cover = tagfile
+            .pictures()?
             .first()
             .map(|p| image::Handle::from_bytes(Bytes::from(p.data.clone())));
         Ok(Self {
@@ -605,7 +629,7 @@ impl File {
                 .file_name()
                 .map_or("Unknown", |f| f.to_str().unwrap_or("Unknown"))
                 .to_owned(),
-            (None, Some(artist)) => format!("Unknown - {}", artist.to_string()),
+            (None, Some(artist)) => format!("Unknown - {}", artist),
             (Some(title), None) => format!("{} - Unknown", title.to_string()),
             (Some(title), Some(artist)) => {
                 format!("{} - {}", title.to_string(), artist.to_string())

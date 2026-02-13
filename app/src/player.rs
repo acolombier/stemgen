@@ -1,8 +1,5 @@
 use std::{
-    cmp::{self, Ordering},
-    fs,
-    io::{BufReader, SeekFrom, prelude::*},
-    path::PathBuf,
+    cmp::{self},
     sync::{
         Arc, Condvar, Mutex,
         atomic::{self, AtomicUsize},
@@ -14,7 +11,7 @@ use std::{
 use iced::{
     futures::{
         self, SinkExt, Stream, StreamExt,
-        channel::mpsc::{self, Receiver, Sender},
+        channel::mpsc,
         executor::block_on,
     },
     stream,
@@ -22,8 +19,8 @@ use iced::{
 use rodio::{OutputStream, Sink, buffer::SamplesBuffer, source};
 
 use crate::{
-    app::{Message, Player, Server},
-    model::{File, RenderedFile},
+    app::{Message, Player},
+    model::RenderedFile,
 };
 
 enum PlayData {
@@ -100,9 +97,8 @@ pub(crate) fn player_run() -> impl Stream<Item = Message> {
 
                 match &mut *state {
                     Context::Idle => {}
-                    Context::Seeking(playing, progress) => {
+                    Context::Seeking(_, progress) => {
                         output.clear();
-                        let total_sample = playing.file.total_samples().unwrap();
                         let mut state = context_lock.lock().unwrap();
                         state.playing(*progress);
                         output.play();

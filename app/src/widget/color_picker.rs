@@ -4,7 +4,7 @@ use iced::{
         layout, mouse, renderer,
         widget::{tree, Tree},
         Clipboard, Layout, Shell, Widget,
-    }, border, color, event, gradient, mouse::Button, window::Position, Color, Element, Event, Length, Radians, Rectangle, Renderer, Size
+    }, border, color, event, gradient, mouse::Button, Color, Element, Event, Length, Radians, Rectangle, Renderer, Size
 };
 
 use crate::app::{Message, Modal};

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use iced::{futures::channel::mpsc, Color, Element, Event};
 use stemgen::constant::{Metadata, MetadataValue};
@@ -7,7 +7,6 @@ use uuid::Uuid;
 use crate::{
     modal::{color_picker, file_conflict, settings},
     model::{RenderedFile, TrackLabel},
-    File,
 };
 
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq)]

@@ -7,7 +7,7 @@ use iced::{
         text_input, tooltip, vertical_space,
     },
 };
-use stemgen::{constant::DEFAULT_MODEL, demucs::Model};
+use stemgen::constant::DEFAULT_MODEL;
 
 use crate::app::Message;
 

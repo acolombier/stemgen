@@ -1,8 +1,4 @@
-use std::collections::HashMap;
-use std::io::{BufReader, Read};
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::{default, thread};
+use std::thread;
 
 use iced::futures::{self, channel::mpsc, Stream};
 use iced::futures::{SinkExt, StreamExt};
@@ -50,9 +46,9 @@ pub fn server_loop() -> impl Stream<Item = Message> {
                     Ok::<_, Box<dyn std::error::Error>>(demucs)
                 };
 
-                // TODO Handle init error
-                let mut demucs = init_result.await.unwrap();
+                init_result.await.unwrap();
 
+                // TODO Handle init error
                 println!("Ready to select!");
                 loop {
                     futures::select! {
@@ -81,7 +77,7 @@ pub fn server_loop() -> impl Stream<Item = Message> {
                                         let mut read = 0;
                                         let mut rendered = RenderedFile::new(file_id).unwrap();
                                         // FIXME what is total returning? Document!
-                                        let total_size = input.total_samples() as usize;
+                                        let total_size = input.total() as usize;
                                         let sample_per_slice = total_size / waveform::SAMPLE_COUNT;
                                         let mut current_slice = 0;
 

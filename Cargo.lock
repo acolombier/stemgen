@@ -4359,6 +4359,7 @@ dependencies = [
  "rfd",
  "rodio",
  "stemgen",
+ "taglib",
  "tokio",
  "uuid",
 ]

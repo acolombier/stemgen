@@ -774,7 +774,7 @@ mod tests {
         let mut read = 0;
         let mut output = RenderedFile::new(Uuid::new_v4()).unwrap();
         // FIXME what is total returning? Document!
-        let total_size = input.total_samples() as usize;
+        let total_size = input.total() as usize;
         let sample_per_slice = total_size / waveform::SAMPLE_COUNT;
         let mut current_slice = 0;
 

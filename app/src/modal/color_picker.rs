@@ -1,7 +1,5 @@
-use std::fmt::format;
-
 use iced::{
-    border, color, widget::{button, column, container, horizontal_space, row, text, text_input, vertical_space}, Alignment, Background, Color, Element, Font, Length::Fill, Padding, Shadow, Theme, Vector
+    border, color, widget::{button, column, container, horizontal_space, row, text, text_input, vertical_space}, Alignment, Background, Color, Element, Font, Padding, Shadow, Theme, Vector
 };
 
 use crate::{app::Message, widget::color_picker};

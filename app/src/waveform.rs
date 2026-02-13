@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use iced::advanced::graphics::mesh::SolidVertex2D;
 use iced::advanced::graphics::{self, Mesh};
 use iced::advanced::widget::Tree;

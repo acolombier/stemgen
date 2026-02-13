@@ -28,6 +28,7 @@ itertools = "0.13.0"
 ffmpeg-next = {version = "7.1.0", default-features = false, features = ["codec","format", "software-resampling"]}
 uuid = {version="1.18.1", features = ["v4"]}
 prost = { version = "0.14", default-features = false, features = ["derive", "std"] }
+taglib = { git = "https://github.com/acolombier/taglib-rust.git", tag = "v2.1.1", features = ["use-pkgconfig", "ni-stem"] }
 prost-types = "0.14"
 memmap = "0.7.0"
 bytes = "1.10.1"

@@ -1,12 +1,10 @@
-use std::path::PathBuf;
-
 use iced::advanced::widget::{Operation, Tree};
 use iced::advanced::{layout, mouse, overlay, renderer, widget, Layout, Widget};
 use iced::advanced::{Clipboard, Shell};
 use iced::alignment::Vertical;
 use iced::widget::{
     column, container, horizontal_space, pick_list, row, text, text_input, vertical_space,
-    MouseArea, Row, Svg,
+    MouseArea, Svg,
 };
 use iced::{
     border, color, event, Alignment, Background, Color, ContentFit, Element, Event, Fill, Font,
