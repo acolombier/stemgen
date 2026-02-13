@@ -189,7 +189,7 @@ stemgen create [GENERATE OPTIONS, COMMON OPTIONS] OUTPUT
 
   OUTPUT  path to the generated STEM file
 
-Options for "genetate":
+Options for "generate":
   --model <model_name>            Demucs model.
   --device <cpu or cuda>          Device for the demucs model inference
   --ext TEXT                      Extension for the STEM file
