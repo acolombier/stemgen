@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Component, PathBuf};
 
 use clap::{builder::ValueParser, value_parser, ArgAction, Parser, Subcommand};
 use stemgen::{
@@ -87,6 +87,94 @@ pub struct CreateArgs {
     pub copy_id3tags_from_mastered: bool,
 }
 
+#[derive(Debug, Parser, Default, Copy, Clone)]
+pub enum DeleteOriginal {
+    #[default]
+    No,
+    #[cfg(unix)]
+    Symlink,
+    Yes
+}
+
+fn diff_paths(old: &PathBuf, new: &PathBuf) -> Result<PathBuf, Box<dyn std::error::Error>>
+{
+    let mut ita = new.parent().ok_or("expected a parented target")?.components();
+    let mut itb = old.parent().ok_or("expected a parented target")?.components();
+    let mut comps: Vec<Component> = vec![];
+
+    // ./foo and foo are the same
+    if let Some(Component::CurDir) = ita.clone().next() {
+        ita.next();
+    }
+    if let Some(Component::CurDir) = itb.clone().next() {
+        itb.next();
+    }
+
+    loop {
+        match (ita.next(), itb.next()) {
+            (None, None) => break,
+            (Some(a), None) => {
+                comps.push(a);
+                comps.extend(ita.by_ref());
+                break;
+            }
+            (None, _) => comps.push(Component::ParentDir),
+            (Some(a), Some(b)) if comps.is_empty() && a == b => (),
+            (Some(a), Some(b)) if b == Component::CurDir => comps.push(a),
+            (Some(_), Some(b)) if b == Component::ParentDir => return Err("unexpected parent dir".into()),
+            (Some(a), Some(_)) => {
+                comps.push(Component::ParentDir);
+                for _ in itb {
+                    comps.push(Component::ParentDir);
+                }
+                comps.push(a);
+                comps.extend(ita.by_ref());
+                break;
+            }
+        }
+    }
+    let rel: PathBuf = comps.iter().map(|c| c.as_os_str()).collect();
+    let filename = new.file_name().ok_or("missing filename in target")?;
+    Ok(rel.join(filename))
+}
+
+impl DeleteOriginal {
+    pub(crate) fn proceed(&self, original: &PathBuf, new: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+        match self {
+            DeleteOriginal::No => Ok(()),
+            #[cfg(unix)]
+            DeleteOriginal::Symlink => {
+                use std::fs::canonicalize;
+
+                let new = canonicalize(new)?;
+                let original = canonicalize(original)?;
+                std::fs::remove_file(&original)?;
+
+                std::os::unix::fs::symlink(diff_paths(&original, &new)?, original)
+            },
+            DeleteOriginal::Yes =>
+                std::fs::remove_file(original),
+        }.map_err(|e|e.into())
+    }
+}
+
+fn parse_deleteoriginal(value: &str) -> Result<DeleteOriginal, String> {
+    value.try_into()
+}
+
+impl TryFrom<&str> for DeleteOriginal {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_ascii_lowercase().as_str() {
+            "no" => Ok(Self::No),
+            "symlink" => Ok(Self::Symlink),
+            "yes" => Ok(Self::Yes),
+            _ => Err("unsupported value".to_owned()),
+        }
+    }
+}
+
 #[derive(Debug, Parser, Default)]
 pub struct GenerateArgs {
     #[arg(num_args = 1.., value_name = "FILES", help = "path(s) to a file supported by the FFmpeg codec available on your machine. Advanced glob pattern can be used such as '~/Music/**/*.mp3'", required = true)]
@@ -105,7 +193,9 @@ pub struct GenerateArgs {
     )]
     pub thread: usize,
     #[arg(long, default_value_t = false)]
-    pub preserved_original_as_master: bool,
+    pub preserve_original_as_master: bool,
+    #[arg(long, value_enum, value_parser = ValueParser::new(parse_deleteoriginal), default_value = "no")]
+    pub delete_original: DeleteOriginal,
 }
 
 #[derive(Debug, Subcommand)]
@@ -134,12 +224,32 @@ pub fn prepare_ffmpeg(ctx: &Cli) -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use clap::CommandFactory;
 
-    use crate::Cli;
+    use crate::{cli::diff_paths, Cli};
 
     #[test]
     fn verify_cmd() {
         Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn test_can_resolve_relative_to_original(){
+        let original = PathBuf::from("../Manau - La Tribu de Dana.mp3");
+        let new = PathBuf::from("../Manau - La Tribu de Dana.stem.mp4");
+
+        assert_eq!(diff_paths(&original, &new).unwrap(), PathBuf::from("Manau - La Tribu de Dana.stem.mp4"));
+
+        let original = PathBuf::from("./Manau - La Tribu de Dana.mp3");
+        let new = PathBuf::from("../Manau - La Tribu de Dana.stem.mp4");
+
+        assert_eq!(diff_paths(&original, &new).unwrap(), PathBuf::from("../Manau - La Tribu de Dana.stem.mp4"));
+
+        let original = PathBuf::from("/mnt/Stereo/Manau - La Tribu de Dana.mp3");
+        let new = PathBuf::from("/mnt/Stem/Manau - La Tribu de Dana.stem.mp4");
+
+        assert_eq!(diff_paths(&original, &new).unwrap(), PathBuf::from("../Stem/Manau - La Tribu de Dana.stem.mp4"));
     }
 }
