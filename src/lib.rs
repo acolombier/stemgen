@@ -1,3 +1,4 @@
+pub mod audio_ops;
 pub mod constant;
 pub mod demucs;
 pub mod nistem;
