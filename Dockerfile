@@ -46,10 +46,10 @@ RUN --mount=type=cache,id=final,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get install -y libavcodec61 libavformat61 libavutil59 ca-certificates wget && \
     test -z "${BUILD_ARGS}" || (\
-        wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb && \
+        wget https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/cuda-keyring_1.1-1_all.deb && \
         dpkg -i cuda-keyring_1.1-1_all.deb && \
-        apt-get update && apt-get install -y libcudnn9-cuda-12=9.1.1.17-1 libcudnn9-dev-cuda-12=9.1.1.17-1 libcudnn9-static-cuda-12=9.1.1.17-1 \
-        && apt-get install -y cudnn9-cuda-12-4 libcufft-12-6 libcublas-12-6 cuda-cudart-12-6) && \
+        apt-get update && \
+        apt-get install -y libcufft-13-2 libcublas-13-2 cuda-cudart-13-2) && \
     rm -rf /var/lib/{dpkg,cache,log}/
 COPY --from=builder --chown=1000:1000 /build/target/release/stemgen /usr/bin/stemgen
 COPY --from=builder --chown=1000:1000 /build/target/release/libonnxruntime_providers*.so /usr/lib
