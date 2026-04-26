@@ -53,4 +53,6 @@ RUN --mount=type=cache,id=final,target=/var/cache/apt,sharing=locked \
     rm -rf /var/lib/{dpkg,cache,log}/
 COPY --from=builder --chown=1000:1000 /build/target/release/stemgen /usr/bin/stemgen
 COPY --from=builder --chown=1000:1000 /build/target/release/libonnxruntime_providers*.so /usr/lib
+RUN useradd -m -u 1000 user
+USER user
 ENTRYPOINT [ "/usr/bin/stemgen" ]

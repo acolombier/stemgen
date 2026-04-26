@@ -39,7 +39,7 @@ mod tests {
     };
 
     use crate::{
-        cli::{Commands, CreateArgs, GenerateArgs}, Cli
+        cli::{Commands, CreateArgs, DeleteOriginal, GenerateArgs}, Cli
     };
 
     #[test]
@@ -67,9 +67,10 @@ mod tests {
                         files,
                         output,
                         device: Device::CPU,
+                        delete_original: DeleteOriginal::No,
                         model: Model::Url(model_url),
                         thread: 4,
-                        preserved_original_as_master: false
+                        preserve_original_as_master: false
                     }),
                     drum_stem_label,
                     bass_stem_label,
