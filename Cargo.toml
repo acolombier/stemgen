@@ -13,11 +13,15 @@ path = "src/lib.rs"
 [dependencies]
 taglib = { git = "https://github.com/acolombier/taglib-rust.git", tag = "v2.2.0", features = ["use-pkgconfig", "static", "ni-stem"] }
 itertools = "0.13.0"
-ffmpeg-next = {version = "7.1.0", default-features = false, features = ["codec","format", "software-resampling"]}
 ndarray = { version = "0.16.1"}
 ort = { version = "=2.0.0-rc.10", default-features = false, features = ["std","ndarray","fetch-models"]}
 serde = {version = "1.0.219", features = ["derive"]}
 serde_json = "1.0.143"
+
+[dependencies.ffmpeg-next]
+version = "7.1.0"
+default-features = false
+features = ["codec","format", "software-resampling", "build"]
 
 [dependencies.chrono]
 version = "0.4.41"
@@ -26,5 +30,3 @@ optional = true
 [features]
 default = []
 cuda = ["ort/cuda","ort/copy-dylibs","ort/download-binaries" ]
-
-benchmark = ["chrono" ]

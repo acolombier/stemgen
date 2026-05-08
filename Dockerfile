@@ -7,7 +7,7 @@ ENV TZ=Etc/UTC
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
-    apt-get install -y cmake make libutfcpp-dev unzip libavcodec-dev libavformat-dev libavutil-dev pkg-config clang wget libssl-dev
+    apt-get install -y cmake make libutfcpp-dev unzip git build-essential pkg-config clang yasm wget libssl-dev
 RUN wget -O taglib.zip https://github.com/taglib/taglib/archive/refs/tags/v2.2.1.zip && \
     unzip taglib.zip && \
     cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF taglib-2.2.1 && \
