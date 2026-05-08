@@ -22,3 +22,5 @@ path = ".."
 [features]
 default = []
 cuda = ["stemgen/cuda"]
+coreml = ["stemgen/coreml"]
+simd = ["stemgen/simd"]

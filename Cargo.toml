@@ -25,6 +25,8 @@ optional = true
 
 [features]
 default = []
-cuda = ["ort/cuda" ]
+cuda = ["ort/cuda"]
+coreml = ["ort/coreml"]
+simd = []
 
-benchmark = ["chrono" ]
+benchmark = ["chrono"]

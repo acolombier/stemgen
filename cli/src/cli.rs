@@ -106,6 +106,20 @@ pub struct GenerateArgs {
     pub thread: usize,
     #[arg(long, default_value_t = false)]
     pub preserved_original_as_master: bool,
+    #[arg(
+        long,
+        value_name = "FLOAT",
+        help = "Overlap between segments (0.0-0.99). Higher values give better quality but slower processing. 0 = no overlap (fastest), 0.25 = 25%% overlap (recommended)",
+        default_value_t = 0.25
+    )]
+    pub overlap: f32,
+    #[arg(
+        long,
+        value_name = "FLOAT",
+        help = "Transition power for windowing (typically 1.0). Higher values create sharper transitions.",
+        default_value_t = 1.0
+    )]
+    pub transition_power: f32,
 }
 
 #[derive(Debug, Subcommand)]
