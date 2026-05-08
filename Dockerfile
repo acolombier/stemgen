@@ -8,9 +8,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
     apt-get install -y cmake make libutfcpp-dev unzip libavcodec-dev libavformat-dev libavutil-dev pkg-config clang wget libssl-dev
-RUN wget -O taglib.zip https://github.com/acolombier/taglib/archive/refs/heads/feat/mp4-ni-stem.zip && \
+RUN wget -O taglib.zip https://github.com/taglib/taglib/archive/refs/tags/v2.2.1.zip && \
     unzip taglib.zip && \
-    cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF taglib-feat-mp4-ni-stem && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF taglib-2.2.1 && \
     make -j && \
     make install
 WORKDIR /build

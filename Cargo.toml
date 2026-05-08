@@ -11,7 +11,7 @@ name = "stemgen"
 path = "src/lib.rs"
 
 [dependencies]
-taglib = { git = "https://github.com/acolombier/taglib-rust.git", tag = "v2.1.1", features = ["use-pkgconfig", "static", "ni-stem"] }
+taglib = { git = "https://github.com/acolombier/taglib-rust.git", tag = "v2.2.0", features = ["use-pkgconfig", "static", "ni-stem"] }
 itertools = "0.13.0"
 ffmpeg-next = {version = "7.1.0", default-features = false, features = ["codec","format", "software-resampling"]}
 ndarray = { version = "0.16.1"}
