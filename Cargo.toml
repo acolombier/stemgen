@@ -14,7 +14,7 @@ path = "src/lib.rs"
 taglib = { git = "https://github.com/acolombier/taglib-rust.git", tag = "v2.2.0", features = ["use-pkgconfig", "static", "ni-stem"] }
 itertools = "0.13.0"
 ndarray = { version = "0.17.2"}
-ort = { version = "=2.0.0-rc.12", default-features = false, features = ["std","ndarray","fetch-models","tls-rustls"]}
+ort = { version = "=2.0.0-rc.12", default-features = false, features = ["std","ndarray","fetch-models","download-binaries","tls-rustls"]}
 serde = {version = "1.0.219", features = ["derive"]}
 serde_json = "1.0.143"
 
@@ -29,4 +29,4 @@ optional = true
 
 [features]
 default = []
-cuda = ["ort/cuda","ort/copy-dylibs","ort/download-binaries" ]
+cuda = ["ort/cuda","ort/copy-dylibs" ]
