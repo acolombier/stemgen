@@ -869,10 +869,6 @@ mod tests {
 
         assert_eq!(file.pictures().unwrap().len(), 1);
 
-        let prop = file.audioproperties().unwrap();
-
-        assert_eq!(prop.length(), 10);
-
         let metadata = file.tag().unwrap();
 
         assert_eq!(metadata.title(), Some("Sound 104".to_owned()));

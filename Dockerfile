@@ -7,16 +7,17 @@ ENV TZ=Etc/UTC
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
-    apt-get install -y cmake make libutfcpp-dev unzip libavcodec-dev libavformat-dev libavutil-dev pkg-config clang wget libssl-dev
-RUN wget -O taglib.zip https://github.com/acolombier/taglib/archive/refs/heads/feat/mp4-ni-stem.zip && \
+    apt-get install -y cmake make libutfcpp-dev unzip git build-essential pkg-config clang yasm wget libssl-dev
+RUN wget -O taglib.zip https://github.com/taglib/taglib/archive/refs/tags/v2.2.1.zip && \
     unzip taglib.zip && \
-    cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF taglib-feat-mp4-ni-stem && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF taglib-2.2.1 && \
     make -j && \
     make install
 WORKDIR /build
 ADD . .
 WORKDIR /build/cli
 ARG BUILD_ARGS=--all-features
+ENV ORT_CUDA_VERSION=13
 RUN --mount=type=cache,target=/build/target/release/build \
     --mount=type=cache,target=/build/target/release/deps \
     --mount=type=cache,target=/build/target/release/incremental \
@@ -44,13 +45,15 @@ ARG BUILD_ARGS=--all-features
 RUN --mount=type=cache,id=final,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=final,target=/var/lib/apt,sharing=locked \
     apt-get update && \
-    apt-get install -y libavcodec61 libavformat61 libavutil59 ca-certificates wget && \
+    apt-get install -y ca-certificates wget && \
     test -z "${BUILD_ARGS}" || (\
-        wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb && \
-        dpkg -i cuda-keyring_1.1-1_all.deb && \
-        apt-get update && apt-get install -y libcudnn9-cuda-12=9.1.1.17-1 libcudnn9-dev-cuda-12=9.1.1.17-1 libcudnn9-static-cuda-12=9.1.1.17-1 \
-        && apt-get install -y cudnn9-cuda-12-4 libcufft-12-6 libcublas-12-6 cuda-cudart-12-6) && \
+        wget https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/cuda-keyring_1.1-1_all.deb && \
+        wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/libcudnn9-cuda-13_9.22.0.52-1_amd64.deb && \
+        apt-get install -f ./cuda-keyring_1.1-1_all.deb ./libcudnn9-cuda-13_9.22.0.52-1_amd64.deb && \
+        apt-get update && \
+        apt-get install -y libcufft-13-2 libcublas-13-2 cuda-cudart-13-2 libcurand-13-2) && \
     rm -rf /var/lib/{dpkg,cache,log}/
 COPY --from=builder --chown=1000:1000 /build/target/release/stemgen /usr/bin/stemgen
-COPY --from=builder --chown=1000:1000 /build/target/release/libonnxruntime_providers*.so /usr/lib
+COPY --from=builder --chown=1000:1000 /build/target/release/libonnxruntime_providers*.so /usr/bin
+ENV LD_LIBRARY_PATH=/usr/local/cuda/targets/x86_64-linux/lib/
 ENTRYPOINT [ "/usr/bin/stemgen" ]

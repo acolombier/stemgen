@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
-use ort::tensor::{Shape, TensorElementType};
-use ort::value::ValueType;
+use ort::value::{Shape, TensorElementType, ValueType};
 use ndarray::{s, ArrayViewMut, ShapeBuilder};
 use ort::{session::{builder::GraphOptimizationLevel, Session}, value::Tensor};
 
@@ -115,9 +114,9 @@ impl Demucs {
                 ],
                 Device::CPU => vec![]
             })
-            .commit()?;
+            .commit();
 
-        let session = Session::builder()?
+        let mut session = Session::builder()?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(ops.threads)?;
 
@@ -126,44 +125,44 @@ impl Demucs {
             Model::Url(url) => session.commit_from_url(url)?,
         };
 
-        if session.inputs.len() != 1 {
+        if session.inputs().len() != 1 {
             return Err("expected model to have one input".into())
         }
 
-        if session.outputs.len() != 1 {
+        if session.outputs().len() != 1 {
             return Err("expected model to have one output".into())
         }
 
         let input_name = {
-            let input = session.inputs.first().unwrap();
-            match &input.input_type {
+            let input = session.inputs().first().unwrap();
+            match &input.dtype() {
                 ValueType::Tensor {
                     ty: TensorElementType::Float32,
                     shape,
                     ..
                     // TODO support multiple buffer length and channel
                 } if *shape == Shape::new([1, 2, 343980]) => {
-                    Ok(input.name.to_owned())
+                    Ok(input.name().to_owned())
                 }
                 _ => {
-                    Err(format!("unsupported input format: {}", input.input_type))
+                    Err(format!("unsupported input format: {}", input.dtype()))
                 }
             }
         }?;
 
         let output_name = {
-            let output = session.outputs.first().unwrap();
-            match &output.output_type {
+            let output = session.outputs().first().unwrap();
+            match &output.dtype() {
                 ValueType::Tensor {
                     ty: TensorElementType::Float32,
                     shape,
                     ..
                     // TODO support multiple buffer length and channel
                 } if *shape == Shape::new([1, 4, 2, 343980]) => {
-                    Ok(output.name.to_owned())
+                    Ok(output.name().to_owned())
                 }
                 _ => {
-                    Err(format!("unsupported output format: {}", output.output_type))
+                    Err(format!("unsupported output format: {}", output.dtype()))
                 }
             }
         }?;
