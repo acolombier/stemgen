@@ -26,8 +26,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .build()
                 .error_on_failure(),
         ])
-        .commit()?;
-    let session = Session::builder()?
+        .commit();
+    let mut session = Session::builder()?
         .with_optimization_level(GraphOptimizationLevel::Level3)?
         .with_intra_threads(4)?;
 

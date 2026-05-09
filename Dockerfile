@@ -17,6 +17,7 @@ WORKDIR /build
 ADD . .
 WORKDIR /build/cli
 ARG BUILD_ARGS=--all-features
+ENV ORT_CUDA_VERSION=13
 RUN --mount=type=cache,target=/build/target/release/build \
     --mount=type=cache,target=/build/target/release/deps \
     --mount=type=cache,target=/build/target/release/incremental \
@@ -44,13 +45,15 @@ ARG BUILD_ARGS=--all-features
 RUN --mount=type=cache,id=final,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=final,target=/var/lib/apt,sharing=locked \
     apt-get update && \
-    apt-get install -y libavcodec61 libavformat61 libavutil59 ca-certificates wget && \
+    apt-get install -y ca-certificates wget && \
     test -z "${BUILD_ARGS}" || (\
         wget https://developer.download.nvidia.com/compute/cuda/repos/debian13/x86_64/cuda-keyring_1.1-1_all.deb && \
-        dpkg -i cuda-keyring_1.1-1_all.deb && \
+        wget https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/libcudnn9-cuda-13_9.22.0.52-1_amd64.deb && \
+        apt-get install -f ./cuda-keyring_1.1-1_all.deb ./libcudnn9-cuda-13_9.22.0.52-1_amd64.deb && \
         apt-get update && \
-        apt-get install -y libcufft-13-2 libcublas-13-2 cuda-cudart-13-2) && \
+        apt-get install -y libcufft-13-2 libcublas-13-2 cuda-cudart-13-2 libcurand-13-2) && \
     rm -rf /var/lib/{dpkg,cache,log}/
 COPY --from=builder --chown=1000:1000 /build/target/release/stemgen /usr/bin/stemgen
-COPY --from=builder --chown=1000:1000 /build/target/release/libonnxruntime_providers*.so /usr/lib
+COPY --from=builder --chown=1000:1000 /build/target/release/libonnxruntime_providers*.so /usr/bin
+ENV LD_LIBRARY_PATH=/usr/local/cuda/targets/x86_64-linux/lib/
 ENTRYPOINT [ "/usr/bin/stemgen" ]
