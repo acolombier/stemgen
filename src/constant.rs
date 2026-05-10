@@ -4,6 +4,7 @@ use crate::nistem::Color;
 
 
 pub const DEFAULT_MODEL: &str = "https://github.com/mixxxdj/demucs/releases/latest/download/htdemucs.onnx";
+pub const STEMGEN_ROOT: &str = "dev.acolombier.stemgen";
 pub const STEM_DEFAULT_LABEL: [&str; 4] = [
     "Drums",
     "Bass",

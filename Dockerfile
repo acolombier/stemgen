@@ -53,7 +53,11 @@ RUN --mount=type=cache,id=final,target=/var/cache/apt,sharing=locked \
         apt-get update && \
         apt-get install -y libcufft-13-2 libcublas-13-2 cuda-cudart-13-2 libcurand-13-2) && \
     rm -rf /var/lib/{dpkg,cache,log}/
-COPY --from=builder --chown=1000:1000 /build/target/release/stemgen /usr/bin/stemgen
-COPY --from=builder --chown=1000:1000 /build/target/release/libonnxruntime_providers*.so /usr/bin
+COPY --from=builder /build/target/release/stemgen /usr/bin/stemgen
+COPY --from=builder /build/target/release/libonnxruntime_providers*.so /usr/bin
 ENV LD_LIBRARY_PATH=/usr/local/cuda/targets/x86_64-linux/lib/
+RUN useradd -m -u 1000 user
+USER user
+RUN mkdir -p /home/user/.cache/dev.acolombier.stemgen
+VOLUME /home/user/.cache/dev.acolombier.stemgen
 ENTRYPOINT [ "/usr/bin/stemgen" ]
