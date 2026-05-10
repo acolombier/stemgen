@@ -3,7 +3,7 @@ use std::{ffi::OsStr, path::PathBuf};
 use glob::glob;
 use indicatif::{ProgressBar, ProgressStyle};
 use stemgen::{
-    demucs::{Demucs, DemusOpts},
+    demucs::{Demucs, DemusOpts, DownloadProgress},
     nistem::{self, NIStem},
     track::Track,
 };
@@ -45,13 +45,47 @@ fn split_file_at_dot(file: &OsStr) -> (&OsStr, Option<&OsStr>) {
     }
 }
 
+struct Downloader {
+    pb: ProgressBar
+}
+
+impl Default for Downloader {
+    fn default() -> Self {
+        Self { pb: ProgressBar::new_spinner() }
+    }
+}
+
+impl DownloadProgress for Downloader {
+    fn start(&self, total: usize) {
+        self.pb.set_length(total as u64);
+        self.pb.set_style(
+            ProgressStyle::with_template(
+                &format!("{{spinner:.yellow}} Downloading model [{{wide_bar:.green}}] {{decimal_bytes_per_sec}} {{percent}}% ({{eta}})"),
+            )
+            .unwrap()
+            .progress_chars("#>-"),
+        );
+    }
+
+    fn progress(&self, current: usize) {
+        self.pb.set_position(current as u64);
+    }
+
+    fn complete(&self) {
+        self.pb.finish_with_message("downloaded model".to_owned());
+    }
+}
+
+
 pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::error::Error>> {
-    let mut demucs = Demucs::new_from_file(
+    let progress = Downloader::default();
+    let mut demucs = Demucs::new_from_file_with_downloader(
         &command.model,
         DemusOpts {
             threads: command.thread,
             device: command.device,
         },
+        progress
     )?;
     let mut has_failure = false;
     let sample_rate: u64 = ctx.sample_rate.into();

@@ -13,6 +13,7 @@ use ort::{
     session::{Session, builder::GraphOptimizationLevel},
     value::Tensor,
 };
+use stemgen::demucs::{Demucs, Model};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("GPU: {:?}", get_gpu_device());
@@ -34,7 +35,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("session ready!");
 
     // let memory = MemoryInfo::new(AllocationDevice::CUDA_PINNED, 0, AllocatorType::Device, MemoryType::Default)?;
-    let mut session = session.commit_from_url("https://github.com/acolombier/demucs/releases/download/v4.0.1-18-g1640988-onnxmodel/htdemucs.onnx")?;
+    let mut model = Demucs::new_from_file(&Model::Url("https://github.com/acolombier/demucs/releases/download/v4.0.1-18-g1640988-onnxmodel/htdemucs.onnx".to_owned()), Default::default())?;
+    let mut session = model.into_session();
 
     let mut input = vec![0.0f32; 343980 * 2];
 
