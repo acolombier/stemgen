@@ -32,3 +32,4 @@ optional = true
 [features]
 default = []
 cuda = ["ort/cuda","ort/copy-dylibs" ]
+coreml = ["ort/coreml"]
