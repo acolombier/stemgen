@@ -39,7 +39,7 @@ mod tests {
     };
 
     use crate::{
-        cli::{Commands, CreateArgs, GenerateArgs}, Cli
+        cli::{Commands, CreateArgs, DeleteOriginal, GenerateArgs}, Cli
     };
 
     #[test]
@@ -67,9 +67,10 @@ mod tests {
                         files,
                         output,
                         device: Device::CPU,
+                        delete_original: DeleteOriginal::No,
                         model: Model::Url(model_url),
                         thread: 4,
-                        preserved_original_as_master: false
+                        preserve_original_as_master: false
                     }),
                     drum_stem_label,
                     bass_stem_label,
@@ -79,7 +80,8 @@ mod tests {
                     bass_stem_color: Color(0xD55E00),
                     other_stem_color: Color(0xCC79A7),
                     vocal_stem_color: Color(0x56B4E9),
-                    ext
+                    ext,
+                    experimental: false
                 }) if (
                     drum_stem_label == "Drums" &&
                     bass_stem_label == "Bass" &&
@@ -133,7 +135,8 @@ mod tests {
                     bass_stem_color: Color(0xD55E00),
                     other_stem_color: Color(0xCC79A7),
                     vocal_stem_color: Color(0x56B4E9),
-                    ext
+                    ext,
+                    experimental: false
                 }) if (
                     drum_stem_label == "Drums" &&
                     bass_stem_label == "Bass" &&
@@ -199,7 +202,8 @@ mod tests {
                     bass_stem_color: Color(0x656bba),
                     other_stem_color: Color(0x52d034),
                     vocal_stem_color: Color(0xdaae2a),
-                    ext
+                    ext,
+                    experimental: false
                 }) if (
                     drum_stem_label == "Kick" &&
                     bass_stem_label == "SubBass" &&

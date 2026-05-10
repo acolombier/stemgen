@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, path::PathBuf};
+use std::{ffi::OsStr, fs::canonicalize, path::PathBuf};
 
 use glob::glob;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -8,7 +8,7 @@ use stemgen::{
     track::Track,
 };
 
-use crate::cli::{Cli, GenerateArgs};
+use crate::cli::{Cli, DeleteOriginal, GenerateArgs};
 
 fn split_file_at_dot(file: &OsStr) -> (&OsStr, Option<&OsStr>) {
     let slice = file.as_encoded_bytes();
@@ -78,15 +78,9 @@ impl DownloadProgress for Downloader {
 
 
 pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::error::Error>> {
-    let progress = Downloader::default();
-    let mut demucs = Demucs::new_from_file_with_downloader(
-        &command.model,
-        DemusOpts {
-            threads: command.thread,
-            device: command.device,
-        },
-        progress
-    )?;
+    if !ctx.experimental && (command.preserve_original_as_master || command.delete_original != DeleteOriginal::No) {
+        return Err("Experimental mode is no enabled. Requested option cannot be used.".into())
+    }
     let mut has_failure = false;
     let sample_rate: u64 = ctx.sample_rate.into();
 
@@ -97,6 +91,20 @@ pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::
     }
 
     let files: Vec<PathBuf> = files.iter_mut().filter_map(|r|r.as_mut().ok()).flatten().filter_map(|r|r.ok()).collect();
+
+    if files.len() == 0 {
+        return Err("No files could be found.".into())
+    }
+
+    let progress = Downloader::default();
+    let mut demucs = Demucs::new_from_file_with_downloader(
+        &command.model,
+        DemusOpts {
+            threads: command.thread,
+            device: command.device,
+        },
+        progress
+    )?;
 
     for file in &files {
         let filename = file.file_name().map(split_file_at_dot).and_then(|(before, _after)| Some(before));
@@ -115,6 +123,9 @@ pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::
             ctx.ext
         );
         let output_file = command.output.join(output_filename);
+        if matches!((canonicalize(file), canonicalize(&output_file)), (Ok(file), Ok(output_file)) if output_file == file) {
+            continue;
+        }
         if output_file.exists() {
             if !ctx.force {
                 eprintln!(
@@ -122,93 +133,112 @@ pub fn generate(ctx: &Cli, command: &GenerateArgs) -> Result<bool, Box<dyn std::
                     output_file.display()
                 );
                 has_failure |= true;
+                if let Err(err) = command.delete_original.proceed(&file, &output_file) {
+                    eprintln!(
+                        "Cannot replace original file {}: {}",
+                        file.display(),
+                        err
+                    );
+                }
                 continue;
             }
             std::fs::remove_file(&output_file)?;
         }
-        let mut input = Track::new(file)?;
-        let mut nistem = if command.preserved_original_as_master {
-            NIStem::new_with_preserved_original(&output_file, input.args(), ctx)?
-        } else {
-            NIStem::new_with_consistent_streams(&output_file, ctx)?
-        };
-        nistem.clone(file)?;
-        let mut read = 0;
-        let pb = ProgressBar::new(2 * input.total() as u64);
-        pb.set_style(
-            ProgressStyle::with_template(
-                &format!("{{spinner:.green}} {} [{{wide_bar:.cyan/blue}}] [{{elapsed_precise}}] {{percent}}% ({{eta}})", filename.display()),
-            )
-            .unwrap()
-            .progress_chars("#>-"),
-        );
-
-        loop {
-            let mut buf: Vec<f32> = vec![0f32; 343980 * 2];
-            let mut original_packets = Vec::with_capacity(512);
-            let mut original_buffer: Vec<f32> = Vec::with_capacity(512);
-
-            let (data, eof) = loop {
-                let size = input.read(
-                    if matches!(nistem, NIStem::PreservedMaster(..)) {
-                        Some(&mut original_packets)
-                    } else {
-                        None
-                    },
-                    &mut buf,
-                )?;
-                read += size;
-                if matches!(nistem, NIStem::ConsistentStream(..)) {
-                    original_buffer.extend(buf[..size].to_vec());
-                }
-                if let Some(mut data) = demucs.send(&buf[..size])? {
-                    if matches!(nistem, NIStem::ConsistentStream(..)) {
-                        data.insert(0, original_buffer);
-                    }
-                    break (data, false)
-                }
-                if size != buf.len() {
-                    let mut data = demucs.flush()?;
-                    if matches!(nistem, NIStem::ConsistentStream(..)) {
-                        data.insert(0, original_buffer);
-                    }
-                    break (data, true);
-                }
+        let mut result = ||{
+            let mut input = Track::new(file)?;
+            let mut nistem = if command.preserve_original_as_master {
+                NIStem::new_with_preserved_original(&output_file, input.args(), ctx)?
+            } else {
+                NIStem::new_with_consistent_streams(&output_file, ctx)?
             };
-            pb.set_position(read as u64 / sample_rate);
-            match nistem {
-                NIStem::PreservedMaster(..) => nistem.write_preserved(original_packets, data)?,
-                NIStem::ConsistentStream(..) => nistem.write_consistent(data)?,
-            }
+            nistem.clone(file)?;
+            let mut read = 0;
+            let pb = ProgressBar::new(2 * input.total() as u64);
+            pb.set_style(
+                ProgressStyle::with_template(
+                    &format!("{{spinner:.green}} {} [{{wide_bar:.cyan/blue}}] [{{elapsed_precise}}] {{percent}}% ({{eta}})", filename.display()),
+                )
+                .unwrap()
+                .progress_chars("#>-"),
+            );
 
-            if eof {
-                break;
+            loop {
+                let mut buf: Vec<f32> = vec![0f32; 343980 * 2];
+                let mut original_packets = Vec::with_capacity(512);
+                let mut original_buffer: Vec<f32> = Vec::with_capacity(512);
+
+                let (data, eof) = loop {
+                    let size = input.read(
+                        if matches!(nistem, NIStem::PreservedMaster(..)) {
+                            Some(&mut original_packets)
+                        } else {
+                            None
+                        },
+                        &mut buf,
+                    )?;
+                    read += size;
+                    if matches!(nistem, NIStem::ConsistentStream(..)) {
+                        original_buffer.extend(buf[..size].to_vec());
+                    }
+                    if let Some(mut data) = demucs.send(&buf[..size])? {
+                        if matches!(nistem, NIStem::ConsistentStream(..)) {
+                            data.insert(0, original_buffer);
+                        }
+                        break (data, false)
+                    }
+                    if size != buf.len() {
+                        let mut data = demucs.flush()?;
+                        if matches!(nistem, NIStem::ConsistentStream(..)) {
+                            data.insert(0, original_buffer);
+                        }
+                        break (data, true);
+                    }
+                };
+                pb.set_position(read as u64 / sample_rate);
+                match nistem {
+                    NIStem::PreservedMaster(..) => nistem.write_preserved(original_packets, data)?,
+                    NIStem::ConsistentStream(..) => nistem.write_consistent(data)?,
+                }
+
+                if eof {
+                    break;
+                }
             }
+            nistem.flush(nistem::Atom {
+                stems: [
+                    nistem::AtomStem {
+                        color: ctx.drum_stem_color.to_owned(),
+                        name: ctx.drum_stem_label.to_owned(),
+                    },
+                    nistem::AtomStem {
+                        color: ctx.bass_stem_color.to_owned(),
+                        name: ctx.bass_stem_label.to_owned(),
+                    },
+                    nistem::AtomStem {
+                        color: ctx.other_stem_color.to_owned(),
+                        name: ctx.other_stem_label.to_owned(),
+                    },
+                    nistem::AtomStem {
+                        color: ctx.vocal_stem_color.to_owned(),
+                        name: ctx.vocal_stem_label.to_owned(),
+                    },
+                ],
+                version: 1,
+                ..Default::default()
+            })?;
+            pb.finish_with_message(format!("generated {}", filename.display()));
+            command.delete_original.proceed(&file, &output_file)
+        };
+
+        if let Err(err) = result() {
+            eprintln!(
+                "Cannot proceed with {}: {}",
+                file.display(),
+                err.to_string()
+            );
+            has_failure |= true;
+            continue;
         }
-
-        pb.finish_with_message(format!("downloaded {}", filename.display()));
-        nistem.flush(nistem::Atom {
-            stems: [
-                nistem::AtomStem {
-                    color: ctx.drum_stem_color.to_owned(),
-                    name: ctx.drum_stem_label.to_owned(),
-                },
-                nistem::AtomStem {
-                    color: ctx.bass_stem_color.to_owned(),
-                    name: ctx.bass_stem_label.to_owned(),
-                },
-                nistem::AtomStem {
-                    color: ctx.other_stem_color.to_owned(),
-                    name: ctx.other_stem_label.to_owned(),
-                },
-                nistem::AtomStem {
-                    color: ctx.vocal_stem_color.to_owned(),
-                    name: ctx.vocal_stem_label.to_owned(),
-                },
-            ],
-            version: 1,
-            ..Default::default()
-        })?;
     }
     Ok(has_failure)
 }
@@ -233,7 +263,7 @@ mod tests {
             command: Commands::Generate(GenerateArgs {
                 files: vec!["../testdata/Oddchap - Sound 104.mp3".into()],
                 output: "..".into(),
-                preserved_original_as_master: false,
+                preserve_original_as_master: false,
                 ..Default::default()
             }),
             ..Default::default()
@@ -257,7 +287,7 @@ mod tests {
             command: Commands::Generate(GenerateArgs {
                 files: vec!["../**/*.mp3".into()],
                 output: "..".into(),
-                preserved_original_as_master: false,
+                preserve_original_as_master: false,
                 ..Default::default()
             }),
             ..Default::default()
