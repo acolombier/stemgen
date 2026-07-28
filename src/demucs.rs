@@ -6,6 +6,9 @@ use ort::{session::{builder::GraphOptimizationLevel, Session}, value::Tensor};
 #[cfg(feature = "cuda")]
 use ort::{execution_providers::CUDAExecutionProvider};
 
+#[cfg(feature = "coreml")]
+use ort::execution_providers::{CoreMLExecutionProvider, coreml::{ComputeUnits}};
+
 use ureq::{
     config::Config,
     tls::{RootCerts, TlsConfig, TlsProvider}
@@ -38,7 +41,9 @@ pub enum Device {
     #[default]
     CPU,
     #[cfg(feature = "cuda")]
-    CUDA
+    CUDA,
+    #[cfg(feature = "coreml")]
+    CoreML
 }
 
 impl std::fmt::Display for Device {
@@ -46,6 +51,8 @@ impl std::fmt::Display for Device {
         match self {
             #[cfg(feature = "cuda")]
             Device::CUDA => write!(f, "cuda"),
+            #[cfg(feature = "coreml")]
+            Device::CoreML => write!(f, "coreml"),
             Device::CPU => write!(f, "cpu"),
         }
     }
@@ -58,6 +65,8 @@ impl TryFrom<&str> for Device {
         match value {
             #[cfg(feature = "cuda")]
             "cuda" => Ok(Device::CUDA),
+            #[cfg(feature = "coreml")]
+            "coreml" => Ok(Device::CoreML),
             "cpu" => Ok(Device::CPU),
             _ => Err("unsupported device".to_owned()),
         }
@@ -127,6 +136,14 @@ impl Demucs {
                         .with_device_id(0)
                         // FIXME seem to wrongly set the memory limit to 0?
                         // .with_memory_limit(1 * 1024 * 1024 * 1024)
+                        .build()
+                        .error_on_failure()
+                ],
+                #[cfg(feature = "coreml")]
+                Device::CoreML => vec![
+                    CoreMLExecutionProvider::default()
+                        // FIXME: There is currently a huge memory leak with CoreML runtime in ort crate
+                        .with_compute_units(ComputeUnits::CPUAndGPU)  // Use GPU for hardware acceleration
                         .build()
                         .error_on_failure()
                 ],
